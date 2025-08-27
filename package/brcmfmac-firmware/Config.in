@@ -1,0 +1,5 @@
+config BR2_PACKAGE_BRCMFMAC_FIRMWARE
+  bool "BRCMFMAC Firmware"
+  default n
+  help
+    Downloads and install CYW43455 firmware from Linux Kernel source

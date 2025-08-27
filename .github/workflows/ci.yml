@@ -1,0 +1,70 @@
+name: CI instrument-cluster
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'package/**'
+      - 'board/**'
+      - 'configs/**'
+      - '.github/workflows/ci.yml'
+      - 'external.mk'
+      - 'external.desc'
+      - 'Config.in'
+      
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      instrument_cluster_os_tag:
+        description: 'instrument cluster OS tag to use'
+        required: false
+        default: 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt clean
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git python3 unzip rsync bc libncurses5-dev \
+            bison flex cpio unzip rsync wget libsdl2-dev libsdl2-image-dev \
+            libsdl2-mixer-dev libsdl2-ttf-dev libfreetype6-dev libjpeg-dev \
+            libpng-dev pkg-config
+
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Checkout Buildroot 2025.05
+        uses: actions/checkout@v4
+        with:
+          repository: "buildroot/buildroot"
+          ref: "2025.05"
+          path: buildroot
+
+      - name: Build
+        run: |
+          make -C buildroot BR2_EXTERNAL=../ O=../output raspberrypi5_defconfig
+          make -C buildroot O=../output
+
+      - name: Rename image for release
+        run: |
+          mv output/images/sdcard.img output/images/instrument-cluster-os-pi5.img
+
+      - name: Upload image to "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Build
+          files: output/images/instrument-cluster-os-pi5.img
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.INSTRUMENT_CLUSTER_OS_RELEASE_PAT }}
+
+      - name: Upload output image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: images-raspberrypi5
+          path: output/images/

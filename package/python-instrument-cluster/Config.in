@@ -1,0 +1,7 @@
+config BR2_PACKAGE_PYTHON_INSTRUMENT_CLUSTER
+    bool "python-instrument-cluster"
+    depends on BR2_PACKAGE_PYTHON3
+    select BR2_PACKAGE_PYTHON_PYGAME_261
+    help
+      An Instrument Cluster
+      https://github.com/chrshdl/instrument-cluster

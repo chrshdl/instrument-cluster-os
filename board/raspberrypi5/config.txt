@@ -1,0 +1,21 @@
+# Kernel
+kernel=Image
+
+# Enable hardware features
+dtparam=i2c_arm=on
+
+# GPU memory for video core (128 is enough for KMS + DSI + simple graphics)
+gpu_mem=128
+
+# Enable KMS graphics for modern displays
+dtoverlay=vc4-kms-v3d
+
+# Enable Waveshare 7" DSI LCD (C)
+dtoverlay=vc4-kms-dsi-waveshare-panel,7_0_inchC,i2c1
+
+# Some Waveshare panels work best with 2 framebuffers (helps with tearing)
+max_framebuffers=2
+
+# For some 1024x600 panels you may need:
+# max_framebuffer_height=600
+
