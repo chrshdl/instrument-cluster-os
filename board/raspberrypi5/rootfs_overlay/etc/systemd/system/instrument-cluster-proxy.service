@@ -1,0 +1,21 @@
+[Unit]
+Description=Gran Turismo 7 JSONL telemetry proxy
+After=network-online.target
+Wants=network-online.target
+# Only start if the external bundle is present
+ConditionPathExists=/opt/granturismo/granturismo/proxy.py
+ConditionPathExists=/opt/granturismo/vendor
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/granturismo
+# Pass PS5 IP from env file (created by your installer) or from your config
+EnvironmentFile=-/etc/default/instrument-cluster-proxy
+# Fallback: allow override from unit drop-in or cli
+Environment=GT_JSONL_OUTPUT=udp://127.0.0.1:5600
+ExecStart=/usr/bin/python3 /opt/granturismo/proxy-wrapper.py --jsonl-output ${GT_JSONL_OUTPUT} --ps-ip ${GT_PS_IP}
+Restart=on-failure
+RestartSec=0.5
+
+[Install]
+WantedBy=multi-user.target
