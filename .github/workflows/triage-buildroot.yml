@@ -1,0 +1,199 @@
+# Triage new Buildroot LTS point releases instead of consuming them blindly.
+#
+# Monthly (and on demand): if a tag newer than BUILDROOT_VERSION exists on
+# the pinned LTS series, work out what it means FOR THIS IMAGE:
+#   1. `make show-info` on both boards gives the true package set,
+#      implicit dependencies included;
+#   2. the release delta is filtered to those packages plus the
+#      infrastructure paths (linux/, boot/, toolchain/, ...);
+#   3. best-effort `pkg-stats` CVE report scoped to our package versions.
+# The result is filed as an issue. If any shipped package is touched, a
+# bump PR (one line: BUILDROOT_VERSION) is opened with the report as body.
+#
+# Note on CI for the bump PR: PRs created with the default GITHUB_TOKEN do
+# not trigger the pull_request workflow (GitHub recursion guard), and the
+# image build is label-gated anyway. Either configure a TRIAGE_PR_PAT
+# secret (classic PAT, repo scope) so the PR behaves like a human-opened
+# one, or add the `build` label and close/reopen the PR to run the build.
+
+name: Triage Buildroot point releases
+
+on:
+  schedule:
+    - cron: '17 6 3 * *'   # monthly, 3rd day 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Find newer point release on the pinned series
+        id: rel
+        run: |
+          PIN="$(cat BUILDROOT_VERSION)"
+          SERIES="$(echo "$PIN" | cut -d. -f1-2)"
+          # Blobless clone: full history/tags for `git log -- <paths>`,
+          # file contents fetched on demand at checkout.
+          git clone --filter=blob:none https://github.com/buildroot/buildroot buildroot
+          LATEST="$(git -C buildroot tag -l "${SERIES}*" | grep -v -- -rc | sort -V | tail -1)"
+          echo "pin=$PIN"       >> "$GITHUB_OUTPUT"
+          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
+          if [ "$LATEST" = "$PIN" ] || [ -z "$LATEST" ]; then
+            echo "newer=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Buildroot pin $PIN is current on the $SERIES series."
+          else
+            echo "newer=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::Buildroot $LATEST available (pinned: $PIN)."
+          fi
+
+      - name: Skip if an open bump PR already covers it
+        id: dedupe
+        if: steps.rel.outputs.newer == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="triage/buildroot-${{ steps.rel.outputs.latest }}"
+          if gh pr list --head "$BRANCH" --state all --json number --jq length | grep -qv '^0$'; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::A PR for $BRANCH already exists — nothing to do."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install host dependencies (kconfig only, no build)
+        if: steps.rel.outputs.newer == 'true' && steps.dedupe.outputs.exists == 'false'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev bison flex jq
+
+      - name: Compute the shipped package set (both boards)
+        if: steps.rel.outputs.newer == 'true' && steps.dedupe.outputs.exists == 'false'
+        id: pkgs
+        run: |
+          git -C buildroot checkout -q "${{ steps.rel.outputs.latest }}"
+          for board in raspberrypi4-64 raspberrypi5; do
+            make -C buildroot O="$PWD/output-$board" BR2_EXTERNAL="$PWD" \
+              "${board}_defconfig" >/dev/null
+            make -C buildroot O="$PWD/output-$board" show-info > "pkgs-$board.json"
+          done
+          jq -s 'add | keys[]' -r pkgs-*.json | sort -u > all-packages.txt
+          echo "$(wc -l < all-packages.txt) packages (incl. host/deps)"
+
+      - name: Filter the release delta to what this image ships
+        if: steps.rel.outputs.newer == 'true' && steps.dedupe.outputs.exists == 'false'
+        id: delta
+        run: |
+          PIN="${{ steps.rel.outputs.pin }}"
+          LATEST="${{ steps.rel.outputs.latest }}"
+
+          # Infrastructure that always matters, then package/<name>/ for
+          # every package show-info reported (linux and uboot live outside
+          # package/; nonexistent paths are simply never matched by git).
+          {
+            echo "linux/"
+            echo "boot/"
+            echo "toolchain/"
+            echo "arch/"
+            echo "fs/"
+            echo "package/pkg-*.mk"
+            echo "package/Makefile.in"
+            echo "Makefile"
+            sed 's|^host-||' all-packages.txt | sort -u | sed 's|^|package/|; s|$|/|'
+          } > watch-paths.txt
+
+          TOTAL=$(git -C buildroot rev-list --count "${PIN}..${LATEST}")
+          git -C buildroot log --oneline "${PIN}..${LATEST}" -- $(cat watch-paths.txt) \
+            > relevant.txt || true
+          RELEVANT=$(wc -l < relevant.txt | tr -d ' ')
+
+          echo "total=$TOTAL"       >> "$GITHUB_OUTPUT"
+          echo "relevant=$RELEVANT" >> "$GITHUB_OUTPUT"
+          echo "Filtered ${TOTAL} commits down to ${RELEVANT} relevant ones."
+
+      - name: CVE report (best effort)
+        if: steps.rel.outputs.newer == 'true' && steps.dedupe.outputs.exists == 'false'
+        continue-on-error: true
+        run: |
+          # pkg-stats downloads CVE data; NVD mirrors are slow/flaky, so
+          # time-box it and let the report degrade gracefully.
+          PKGS=$(grep -v '^host-' all-packages.txt | paste -sd, -)
+          timeout 25m ./buildroot/support/scripts/pkg-stats \
+            -p "$PKGS" --nvd-path "$HOME/.nvd" --json cve.json 2>pkg-stats.log || true
+          if [ -f cve.json ]; then
+            jq -r '.packages | to_entries[]
+                   | select(.value.cves != null and (.value.cves | length) > 0)
+                   | "| \(.key) | \(.value.current_version // "?") | \(.value.cves | join(", ")) |"' \
+              cve.json > cve-table.txt || true
+          fi
+
+      - name: Compose report
+        if: steps.rel.outputs.newer == 'true' && steps.dedupe.outputs.exists == 'false'
+        id: report
+        run: |
+          PIN="${{ steps.rel.outputs.pin }}"
+          LATEST="${{ steps.rel.outputs.latest }}"
+          {
+            echo "Buildroot **${LATEST}** is out (pinned: ${PIN})."
+            echo
+            echo "**${{ steps.delta.outputs.relevant }}** of ${{ steps.delta.outputs.total }} commits touch packages or infrastructure this image ships:"
+            echo
+            echo '```'
+            if [ -s relevant.txt ]; then cat relevant.txt; else echo "(none — nothing we ship was touched)"; fi
+            echo '```'
+            echo
+            if [ -s cve-table.txt ]; then
+              echo "**Open CVEs matched against our package versions** (pkg-stats; triage signal, not gospel):"
+              echo
+              echo "| Package | Version | CVEs |"
+              echo "|---|---|---|"
+              cat cve-table.txt
+            else
+              echo "_CVE report unavailable this run (pkg-stats failed or timed out)._"
+            fi
+            echo
+            echo "Full changelog: https://git.buildroot.org/buildroot/log/?h=${LATEST}"
+          } > report.md
+
+      - name: File triage issue
+        if: steps.rel.outputs.newer == 'true' && steps.dedupe.outputs.exists == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Buildroot ${{ steps.rel.outputs.latest }}: ${{ steps.delta.outputs.relevant }} relevant change(s)" \
+            --body-file report.md
+
+      - name: Open bump PR (only when something we ship changed)
+        if: >-
+          steps.rel.outputs.newer == 'true' &&
+          steps.dedupe.outputs.exists == 'false' &&
+          steps.delta.outputs.relevant != '0'
+        env:
+          GH_TOKEN: ${{ secrets.TRIAGE_PR_PAT || github.token }}
+        run: |
+          LATEST="${{ steps.rel.outputs.latest }}"
+          BRANCH="triage/buildroot-${LATEST}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          echo "$LATEST" > BUILDROOT_VERSION
+          git add BUILDROOT_VERSION
+          git commit -m "buildroot: bump to ${LATEST}"
+          git push -u origin "$BRANCH"
+          {
+            cat report.md
+            echo
+            echo "---"
+            echo "Merging pins CI (and the docs' clone instructions) to ${LATEST}."
+            echo "To run the image build on this PR: add the \`build\` label, then close/reopen it."
+          } > pr-body.md
+          gh pr create --title "buildroot: bump to ${LATEST}" \
+            --body-file pr-body.md --head "$BRANCH"

@@ -1,0 +1,21 @@
+[Unit]
+Description=Copy Wi-Fi config from /boot into /etc/wpa_supplicant
+Requires=boot.mount data.mount
+After=boot.mount data.mount local-fs.target
+
+Before=wpa_supplicant@wlan0.service
+Wants=wpa_supplicant@wlan0.service
+
+ConditionPathExists=/boot/wpa_supplicant-wlan0.conf
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+ExecStartPre=/bin/mkdir -p /data/etc/wpa_supplicant
+
+ExecStart=/usr/local/bin/install-wifi-config.sh
+ExecStartPost=/usr/bin/systemctl --no-block restart wpa_supplicant@wlan0.service
+
+[Install]
+WantedBy=multi-user.target

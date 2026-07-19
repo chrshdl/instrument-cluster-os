@@ -1,0 +1,93 @@
+--- a/buildconfig/config_unix.py
++++ b/buildconfig/config_unix.py
+@@ -17,7 +17,15 @@ else:
+ if os.environ.get('LOCALBASE', ''):
+     extrabases.append(os.environ['LOCALBASE'])
+ 
+-extrabases.extend(("/usr", "/usr/local"))
++# Buildroot/cross-compile friendly: prefer STAGING_DIR over host /usr paths
++_staging = os.environ.get('STAGING_DIR')
++if _staging:
++    extrabases.extend((
++        os.path.join(_staging, 'usr'),
++        os.path.join(_staging, 'usr', 'local'),
++    ))
++else:
++    extrabases.extend(("/usr", "/usr/local"))
+ 
+ class DependencyProg:
+     def __init__(self, name, envname, exename, minver, defaultlibs, version_flag="--version"):
+@@ -53,9 +61,26 @@ class DependencyProg:
+                     self.cflags += f + ' '
+                 elif f[:3] == '-Wl':
+                     self.cflags += '-Xlinker ' + f + ' '
++            # Do NOT inject host X11R6 include path for SDL (breaks cross builds).
+             if self.name == 'SDL':
+-                inc = '-I' + '/usr/X11R6/include'
+-                self.cflags = inc + ' ' + self.cflags
++                pass
++            # Sanitize any lingering X11R6 flags from tools/env.
++            self.cflags = ' '.join(p for p in self.cflags.split() if '/X11R6/' not in p)
++
++            # If cross-compiling under Buildroot, remap absolute /usr*/ include/lib flags
++            # into the STAGING_DIR sysroot. This keeps the toolchain wrapper happy.
++            staging = os.environ.get('STAGING_DIR')
++            if staging:
++                fixed = []
++                for tok in self.cflags.split():
++                    if tok.startswith('-I') or tok.startswith('-L'):
++                        prefix, path = tok[:2], tok[2:]
++                        if path.startswith('/usr/') or path == '/usr':
++                            tok = prefix + os.path.join(staging, path.lstrip('/'))
++                        elif path.startswith('/usr/local/'):
++                            tok = prefix + os.path.join(staging, path.lstrip('/'))
++                    fixed.append(tok)
++                self.cflags = ' '.join(fixed)
+         except (ValueError, TypeError):
+             print(f'WARNING: "{command}" failed!')
+             self.found = 0
+@@ -141,7 +166,8 @@ def main(auto_config=False):
+ 
+     #these get prefixes with '/usr' and '/usr/local' or the $LOCALBASE
+     origincdirs = ['/include', '/include/SDL2']
+-    origlibdirs = ['/lib', '/lib64', '/X11R6/lib']
++    # Drop host /X11R6/lib from default search dirs
++    origlibdirs = ['/lib', '/lib64']
+ 
+     # If we are on a debian based system, we also need to handle
+     # /lib/<multiarch-tuple>
+@@ -250,11 +276,32 @@ def main(auto_config=False):
+         incdirs += [extrabase + d for d in origincdirs]
+         libdirs += [extrabase + d for d in origlibdirs]
+ 
++    # Harvest flags from sdl2-config (already sanitized in DependencyProg),
++    # then remap/filter again here for safety.
++    staging = os.environ.get('STAGING_DIR')
+     for arg in DEPS[0].cflags.split():
+         if arg[:2] == '-I':
+-            incdirs.append(arg[2:])
++            path = arg[2:]
++            # Drop host X11R6 outright
++            if '/X11R6/' in path:
++                continue
++            # Remap /usr* to STAGING_DIR if available
++            if staging and (path.startswith('/usr/') or path == '/usr' or path.startswith('/usr/local/')):
++                path = os.path.join(staging, path.lstrip('/'))
++            incdirs.append(path)
+         elif arg[:2] == '-L':
+-            libdirs.append(arg[2:])
++            path = arg[2:]
++            if '/X11R6/' in path:
++                continue
++            if staging and (path.startswith('/usr/') or path == '/usr' or path.startswith('/usr/local/')):
++                path = os.path.join(staging, path.lstrip('/'))
++            libdirs.append(path)
++
++    # Final guard: if cross-compiling, scrub any absolute host /usr* dirs
++    if staging:
++        incdirs = [p for p in incdirs if not (p.startswith('/usr/') or p == '/usr' or p.startswith('/usr/local/'))]
++        libdirs = [p for p in libdirs if not (p.startswith('/usr/') or p == '/usr' or p.startswith('/usr/local/'))]
++
+     for d in DEPS:
+         d.configure(incdirs, libdirs)
+ 

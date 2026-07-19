@@ -1,0 +1,33 @@
+[Unit]
+Description=instrument-cluster
+After=local-fs.target splashscreen.service
+Requires=splashscreen.service
+
+StartLimitIntervalSec=60
+StartLimitBurst=3
+StartLimitAction=reboot
+
+[Service]
+# we use notify so systemd knows when initialization is actually done
+Type=notify
+
+# enable the hardware/software watchdog timer
+# if the python loop hangs for 30 seconds systemd kills the app
+WatchdogSec=30
+
+Environment=SDL_VIDEODRIVER=kmsdrm
+# Pi 5 split DRM: rp1-dsi display card has no Mesa DRI driver; V3D does.
+# Force Mesa to load v3d_dri.so so EGL can initialise against the display card.
+Environment=MESA_LOADER_DRIVER_OVERRIDE=v3d
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYOPENGL_PLATFORM=egl
+Environment=PYTHON_BASIC_REPL=1
+Environment=IC_CONFIG_PATH=/data/config/instrument-cluster.json
+ExecStart=/usr/bin/instrument-cluster
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

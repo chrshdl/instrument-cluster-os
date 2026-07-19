@@ -1,0 +1,102 @@
+name: CI instrument-cluster
+
+on:
+  push:
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # The image build (~1-2h) is expensive, so it does NOT run on pull requests
+    # by default — OS-side changes are revalidated together with the next app
+    # bump tag rather than burning a build on an intermediate state that never
+    # ships. Add the "build" label to a PR to opt into an image build for it.
+    # Tags (v*) and workflow_dispatch always build.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'build')
+    strategy:
+      # Build both boards independently so one board's failure doesn't cancel
+      # the other (easier diagnosis; matters on PRs that don't sign/upload).
+      fail-fast: false
+      matrix:
+        board: [raspberrypi4-64, raspberrypi5]
+    steps:
+      - name: Free disk space
+        uses: endersonmenezes/free-disk-space@v3
+        with:
+          remove_android: true
+          remove_tool_cache: true
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git python3 unzip rsync bc libncurses5-dev \
+            bison flex cpio wget libssl-dev libgnutls28-dev
+
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      # Single source of truth for the Buildroot pin; bumped by the
+      # triage-buildroot workflow (or by hand) via a one-line PR.
+      - name: Read pinned Buildroot version
+        id: buildroot
+        run: echo "version=$(cat BUILDROOT_VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Buildroot ${{ steps.buildroot.outputs.version }}
+        uses: actions/checkout@v4
+        with:
+          repository: "buildroot/buildroot"
+          ref: "${{ steps.buildroot.outputs.version }}"
+          path: buildroot
+
+      - name: Build for ${{ matrix.board }}
+        env:
+          # Pre-seeded above; keep consistent between defconfig and build.
+          BR2_DL_DIR: ${{ github.workspace }}/dl
+          # OS release version for /etc/os-release (read by post-build.sh);
+          # only meaningful on tag builds, empty otherwise.
+          IC_OS_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+        run: |
+          make -C buildroot BR2_EXTERNAL=../ O=../output ${{ matrix.board }}_defconfig
+          make -C buildroot O=../output
+
+      # No update bundles here: this repo ships the community image, which
+      # has no OTA — devices update by re-flashing the factory image. The
+      # signed .raucb production (and the signing secrets) live in the
+      # private Pro OS repo, which layers on this tree.
+      - name: Rename Factory Image
+        run: |
+          mv output/images/sdcard.img output/images/factory-${{ github.ref_name }}-${{ matrix.board }}.img
+
+      # The published images aggregate GPL/LGPL components (kernel, U-Boot,
+      # BusyBox, glibc, the app, ...) whose licenses require making the
+      # corresponding sources available alongside the binaries. Buildroot's
+      # legal-info collects the per-package license texts, the manifest, and
+      # the source archives; every release ships that bundle next to the
+      # image. Host tools never leave the build machine, so host-* stays out.
+      - name: Collect legal info (license manifest + sources)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          make -C buildroot O=../output legal-info
+          tar -C output/legal-info -czf \
+            output/images/legal-info-${{ github.ref_name }}-${{ matrix.board }}.tar.gz \
+            README buildroot.config manifest.csv licenses sources
+
+      - name: Upload Factory Image to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/images/factory-${{ github.ref_name }}-${{ matrix.board }}.img
+
+      - name: Upload Legal Info to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/images/legal-info-${{ github.ref_name }}-${{ matrix.board }}.tar.gz

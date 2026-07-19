@@ -1,0 +1,39 @@
+[Unit]
+Description=Create directory structure on Data partition
+DefaultDependencies=no
+# Wait for the partition to be mounted
+Requires=data.mount
+After=data.mount
+# Run before any service that needs these folders
+Before=instrument-cluster.service sshd.service wpa_supplicant@wlan0.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+# 1. Create telemetry-feed base dir (target for the /opt/telemetry symlink).
+#    Feeds install into per-game subdirs below it (…/granturismo, …/assettocorsa)
+#    and an "active" symlink here selects which one the proxy service runs.
+ExecStart=/bin/mkdir -p /data/opt/telemetry
+
+# 2. Create Config Directory (Target for root/.config symlink)
+ExecStart=/bin/mkdir -p /data/config
+
+# 3. Create System Directories (Targets for etc/ssh & etc/wpa_supplicant)
+ExecStart=/bin/mkdir -p /data/etc/ssh
+ExecStart=/bin/mkdir -p /data/etc/wpa_supplicant
+ExecStart=/bin/mkdir -p /data/rauc
+
+# 4. Set Permissions (Security)
+ExecStart=/bin/chmod 700 /data/etc/ssh
+ExecStart=/bin/chmod 755 /data/rauc
+
+# 5. Seed a default (header-only) wpa_supplicant config so the supplicant
+#    starts with a control interface on first boot, even before any network is
+#    configured. This lets the instrument-cluster app scan for Wi-Fi networks
+#    on-screen; the app rewrites this file (and restarts the service) when the
+#    user joins a network. Guarded so a provisioned config is never clobbered.
+ExecStart=/bin/sh -c 'CONF=/data/etc/wpa_supplicant/wpa_supplicant-wlan0.conf; [ -f "$CONF" ] || { printf "ctrl_interface=/run/wpa_supplicant\nupdate_config=1\ncountry=DE\n" > "$CONF" && chmod 600 "$CONF"; }'
+
+[Install]
+WantedBy=sysinit.target

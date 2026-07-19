@@ -1,0 +1,37 @@
+################################################################################
+# python-instrument-cluster
+################################################################################
+
+# Use the specific version tag
+PYTHON_INSTRUMENT_CLUSTER_VERSION = 0.1.0
+PYTHON_INSTRUMENT_CLUSTER_SITE = $(call github,chrshdl,revokyte,v$(PYTHON_INSTRUMENT_CLUSTER_VERSION))
+
+PYTHON_INSTRUMENT_CLUSTER_LICENSE = GPL-3.0-or-later
+PYTHON_INSTRUMENT_CLUSTER_LICENSE_FILES = LICENSE
+
+PYTHON_INSTRUMENT_CLUSTER_SETUP_TYPE = pep517
+
+# The app derives its version from the git tag via setuptools_scm (reads
+# .git_archival.txt from the GitHub tag tarball, which has no .git dir).
+# The build backend must be available on the host to compute it offline.
+# host-python-cython compiles the vendored delta calculator (see below).
+PYTHON_INSTRUMENT_CLUSTER_DEPENDENCIES = host-python-setuptools-scm host-python-cython
+
+# Cython-compile the vendored delta calculator (core/delta_calculator)
+# with THIS image's interpreter and toolchain — same performance as the
+# old prebuilt python-delta-calculator package, none of its ABI pinning
+# (the .so can never skew against the Python an OTA ships, because it is
+# rebuilt with it). The app's setup.py only builds the extensions when
+# this flag is set; everywhere else the pure-Python source runs.
+PYTHON_INSTRUMENT_CLUSTER_ENV = CYTHONIZE_DELTA_CALCULATOR=1
+
+define PYTHON_INSTRUMENT_CLUSTER_INSTALL_INIT_SYSTEMD
+	$(INSTALL) -D -m 0644 $(BR2_EXTERNAL)/package/python-instrument-cluster/instrument-cluster.service \
+		$(TARGET_DIR)/usr/lib/systemd/system/instrument-cluster.service
+	mkdir -p $(TARGET_DIR)/etc/systemd/system/multi-user.target.wants
+	ln -sf /usr/lib/systemd/system/instrument-cluster.service \
+		$(TARGET_DIR)/etc/systemd/system/multi-user.target.wants/instrument-cluster.service
+endef
+
+
+$(eval $(python-package))

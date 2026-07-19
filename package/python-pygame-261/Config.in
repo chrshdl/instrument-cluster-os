@@ -1,0 +1,17 @@
+config BR2_PACKAGE_PYTHON_PYGAME_261
+    bool "python-pygame-261"
+    depends on BR2_PACKAGE_PYTHON3
+    select BR2_PACKAGE_SDL2
+    select BR2_PACKAGE_SDL2_IMAGE
+    select BR2_PACKAGE_SDL2_TTF
+    select BR2_PACKAGE_LIBPNG
+    select BR2_PACKAGE_LIBJPEG
+    select BR2_PACKAGE_FREETYPE
+    help
+      This package provides the Pygame Python library (version 2.6.1) built
+      against SDL2 and related graphics dependencies. Pygame enables
+      development of multimedia applications and games in Python and
+      requires SDL2, SDL2_image, SDL2_ttf, libpng, libjpeg and freetype
+      for full functionality. Selecting this option will build
+      and install the pygame module for Python, linked against the
+      Raspberry Pi 5 graphics stack.

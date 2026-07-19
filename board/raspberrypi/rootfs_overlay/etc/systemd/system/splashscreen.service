@@ -1,0 +1,14 @@
+[Unit]
+Description=Show Splash Screen
+DefaultDependencies=no
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c "echo 0 > /sys/class/graphics/fb0/blank && /usr/bin/fbv -i -f /etc/splash.png"
+StandardInput=null
+StandardOutput=null
+RemainAfterExit=yes
+
+[Install]
+WantedBy=basic.target

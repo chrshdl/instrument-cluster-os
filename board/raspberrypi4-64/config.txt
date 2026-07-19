@@ -1,0 +1,14 @@
+enable_uart=1
+arm_64bit=1
+
+disable_splash=1
+
+kernel=u-boot.bin
+
+dtparam=i2c_arm=on
+dtparam=spi=on
+
+dtoverlay=vc4-kms-v3d
+dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy
+
+gpu_mem=256

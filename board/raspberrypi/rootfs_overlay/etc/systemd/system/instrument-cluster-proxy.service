@@ -1,0 +1,29 @@
+[Unit]
+Description=Telemetry JSONL proxy (game feed)
+Wants=network.target
+
+Requires=data.mount
+After=network.target data.mount
+
+[Service]
+Type=simple
+# Stable base dir (always present via the /opt/telemetry symlink), so systemd
+# can chdir here even before any feed is installed; the launcher chdir's to its
+# own dir anyway. /opt/telemetry/active (below) is a symlink the on-device
+# installer repoints at the selected feed's dir (…/granturismo or
+# …/assettocorsa), so this static service runs whichever feed the user installed.
+WorkingDirectory=/opt/telemetry
+
+# Per-feed config written by the on-device installer: GT_* for the granturismo
+# (GT7) feed, ACC_* for the Assetto Corsa Competizione feed. The installed
+# feed's proxy reads its own variables from here as argparse defaults, so the
+# service passes no game-specific arguments and stays feed-agnostic.
+EnvironmentFile=-/data/etc/instrument-cluster-proxy
+
+ExecStart=/usr/bin/python3 /opt/telemetry/active/proxy-wrapper.py
+
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

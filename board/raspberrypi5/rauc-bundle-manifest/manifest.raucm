@@ -1,0 +1,6 @@
+[update]
+compatible=@BOARD_COMPATIBLE@
+version=@BUILD_VERSION@
+
+[image.rootfs]
+filename=rootfs.ext4

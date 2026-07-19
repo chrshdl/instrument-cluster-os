@@ -1,0 +1,13 @@
+config BR2_PACKAGE_PYTHON_PYOPENGL
+	bool "python-pyopengl"
+	depends on BR2_PACKAGE_PYTHON3
+	depends on BR2_PACKAGE_HAS_LIBGLES
+	depends on BR2_PACKAGE_HAS_LIBEGL
+	help
+	  Standard OpenGL bindings for Python.
+
+	  https://pypi.org/project/PyOpenGL/
+
+comment "python-pyopengl needs python3 and an OpenGL ES provider"
+	depends on !BR2_PACKAGE_PYTHON3 || !BR2_PACKAGE_HAS_LIBGLES
+

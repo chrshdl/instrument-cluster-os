@@ -1,0 +1,12 @@
+[Unit]
+Description=Start telemetry proxy when a feed bundle is installed
+
+[Path]
+# Feed-neutral trigger: the installer repoints /opt/telemetry/active at the
+# selected feed's dir, so its launcher appears here regardless of which game's
+# feed the user installed.
+PathExists=/opt/telemetry/active/proxy-wrapper.py
+Unit=instrument-cluster-proxy.service
+
+[Install]
+WantedBy=multi-user.target

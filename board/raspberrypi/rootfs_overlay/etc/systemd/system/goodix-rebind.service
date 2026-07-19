@@ -1,0 +1,15 @@
+[Unit]
+Description=Rebind Goodix GT911 touchscreen (boot probe race with DSI panel)
+
+# The touch depends on the DSI panel MCU being up; the script retries until the
+# input device appears. Order before the cluster so pygame sees the touch.
+After=local-fs.target splashscreen.service
+Before=instrument-cluster.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/goodix-rebind.sh
+
+[Install]
+WantedBy=multi-user.target

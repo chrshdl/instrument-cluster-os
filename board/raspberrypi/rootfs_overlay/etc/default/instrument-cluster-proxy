@@ -1,0 +1,17 @@
+# Reference for instrument-cluster-proxy.service.
+#
+# The service actually loads its config from /data/etc/instrument-cluster-proxy,
+# which the on-device installer writes for the feed the user selected. This file
+# only documents the variables each feed's proxy understands.
+#
+# Gran Turismo 7 (granturismo feed):
+#   GT_PS_IP=                              # PlayStation 5 IP
+#   GT_JSONL_OUTPUT=udp://127.0.0.1:5600   # where the dashboard listens
+#
+# Assetto Corsa Competizione (acc feed):
+#   ACC_PC_IP=                             # game PC IP
+#   ACC_UDP_PORT=9000                      # ACC broadcasting port
+#   ACC_JSONL_OUTPUT=udp://127.0.0.1:5600  # where the dashboard listens
+
+# Helpful on some minimal images
+SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt

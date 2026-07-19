@@ -1,0 +1,38 @@
+[Unit]
+Description=Instrument Cluster health monitor for RAUC
+ConditionPathExists=/usr/bin/rauc
+
+# DEPENDENCIES
+Requires=data.mount
+After=data.mount
+
+# LOGIC:
+# This service starts AFTER the cluster reports READY=1.
+# If instrument-cluster crashes (stops), this service is stopped immediately
+# by systemd because of "Requires=".
+Requires=instrument-cluster.service
+After=instrument-cluster.service
+
+[Service]
+# CHANGE 1: Use 'simple' so boot continues immediately
+Type=simple
+
+# CHANGE 2: mkdir is fast, keep it here.
+ExecStartPre=/bin/mkdir -p /data/rauc
+
+# CHANGE 3: Move the wait logic here.
+# We wrap it in a shell command.
+# - It waits 15s (in background).
+# - Then verifies the hardware a driver regression would break
+#   (ota-health-check.sh: display, GPU, Wi-Fi, touch) before RAUC
+#   mark-good. A failed check skips mark-good, so the slot keeps
+#   burning boot attempts and U-Boot rolls back after three reboots.
+# - If this service is stopped (because the app crashed) during the sleep,
+#   systemd kills this process, and 'mark-good' never runs.
+ExecStart=/bin/sh -c '/bin/sleep 15 && /usr/local/bin/ota-health-check.sh && /usr/bin/rauc status mark-good'
+
+# Remove RemainAfterExit (not needed for simple services that wait)
+# RemainAfterExit=yes 
+
+[Install]
+WantedBy=multi-user.target
