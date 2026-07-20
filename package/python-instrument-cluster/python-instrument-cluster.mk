@@ -3,7 +3,7 @@
 ################################################################################
 
 # Use the specific version tag
-PYTHON_INSTRUMENT_CLUSTER_VERSION = 0.1.0
+PYTHON_INSTRUMENT_CLUSTER_VERSION = 0.1.1
 PYTHON_INSTRUMENT_CLUSTER_SITE = $(call github,chrshdl,revokyte,v$(PYTHON_INSTRUMENT_CLUSTER_VERSION))
 
 PYTHON_INSTRUMENT_CLUSTER_LICENSE = GPL-3.0-or-later
