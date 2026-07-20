@@ -1,6 +1,6 @@
 # Building a Raspberry Pi image
 
-This guide explains how to produce a flashable / updatable Raspberry Pi image for
+This guide explains how to produce a flashable Raspberry Pi image for
 the instrument cluster when one or more of the source repositories change.
 It assumes **no prior knowledge** of how the pieces fit together.
 
@@ -72,7 +72,7 @@ a GitHub Actions workflow that builds the artifact and publishes a GitHub Releas
 | `granturismo` | `v*` → *Build self-contained tarball* | `granturismo-selfcontained-<ver>.tar.gz` (+ `.sha256`, `.sig`) on a Release |
 | `assettocorsa` | `v*` → *Build self-contained tarball* | `acc-selfcontained-<ver>.tar.gz` (+ `.sha256`, `.sig`) on a Release |
 | `revokyte` | `v*` → *Bump OS package* | **Auto-commits** the new version + source hash into this repo's `python-instrument-cluster.mk` / `.hash` |
-| `instrument-cluster-os` (this repo) | `v*` → *CI instrument-cluster* | The Pi image (factory image + RAUC OTA bundle) on a Release |
+| `instrument-cluster-os` (this repo) | `v*` → *CI instrument-cluster* | The Pi image (factory image + legal-info bundle) on a Release |
 
 Two important consequences:
 
@@ -89,8 +89,6 @@ Two important consequences:
 
 - The [`gh` CLI](https://cli.github.com/) installed and logged in
   (`gh auth login`), with access to the `chrshdl` repos.
-- For tagged image releases, the RAUC signing secrets `RAUC_CERT_PEM` /
-  `RAUC_KEY_PEM` must be set (only needed to produce the OTA bundle).
 - The **`revokyte` repo** (the app) has a secret **`INSTRUMENT_CLUSTER_OS_REPO_PAT`**
   (a PAT with `contents:write` on `instrument-cluster-os`). Its *Bump OS package*
   workflow uses it to commit the version/hash bump here. If an app release
@@ -157,7 +155,7 @@ git tag v0.1.3 && git push origin v0.1.3
 ```
 
 This builds the Pi image for both boards (`raspberrypi4-64`, `raspberrypi5`) and,
-because it is a tag, also produces the **factory image** and **RAUC OTA bundle**
+because it is a tag, also produces the **factory image** and **legal-info bundle**
 and uploads them to the image Release.
 
 ```bash
@@ -203,8 +201,7 @@ runtime, the app change reaches them via the new image.
 ## 6. Building without releasing (validation / local)
 
 - **Validate the image build without publishing:** run the workflow manually.
-  It builds both boards but skips the RAUC bundle and release upload (those are
-  tag-only):
+  It builds both boards but skips the release upload (tag-only):
   ```bash
   gh workflow run "CI instrument-cluster" --repo chrshdl/instrument-cluster-os --ref main
   ```
