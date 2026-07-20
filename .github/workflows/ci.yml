@@ -83,6 +83,10 @@ jobs:
       # image. Host tools never leave the build machine, so host-* stays out.
       - name: Collect legal info (license manifest + sources)
         if: startsWith(github.ref, 'refs/tags/')
+        env:
+          # legal-info copies the source archives out of the download dir —
+          # it must see the same BR2_DL_DIR the build used.
+          BR2_DL_DIR: ${{ github.workspace }}/dl
         run: |
           make -C buildroot O=../output legal-info
           tar -C output/legal-info -czf \
