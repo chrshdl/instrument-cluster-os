@@ -14,6 +14,8 @@ Buildroot-based OS image for [Revokyte](https://github.com/chrshdl/revokyte), an
 
 Download the image for your board (Raspberry Pi 4 or 5) from the [releases](https://github.com/chrshdl/instrument-cluster-os/releases) and flash it to an SD card (e.g. with Raspberry Pi Imager). To pre-provision Wi-Fi, place a filled-in `wpa_supplicant-wlan0.conf` on the boot partition.
 
+Released images are locked down: no SSH server and no interactive root login. If you want to hack on the device, use a dev image instead — download a `dev-*.img` artifact from a [CI workflow run](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml) or build one locally (dev is the default build variant) — which has SSH enabled with user `root`, password `root`.
+
 ## Legal
 
 This project is created for educational and personal use and provided without warranty of any kind, express or implied. Use at your own risk.

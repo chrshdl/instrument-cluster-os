@@ -115,4 +115,16 @@ else
     echo "POST-BUILD: WARNING - Systemd unit directory not found. Skipping systemd tweaks."
 fi
 
+# ------------------------------------------------------------------------------
+# Release Hardening
+# ------------------------------------------------------------------------------
+# The shared rootfs overlay always ships sshd config for dev images; release
+# builds (configs/release.fragment) drop OpenSSH itself — remove the now-inert
+# config so shipped images contain no SSH artifacts at all. CI's
+# assert-release-image.sh verifies this on the built rootfs.ext4.
+if ! grep -q "^BR2_PACKAGE_OPENSSH=y" "$BR2_CONFIG"; then
+    rm -rf "$T/etc/ssh" "$T/etc/systemd/system/sshd.service.d"
+    echo "POST-BUILD: OpenSSH not in config — removed SSH overlay leftovers"
+fi
+
 exit 0

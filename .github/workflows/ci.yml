@@ -65,15 +65,65 @@ jobs:
           IC_OS_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
         run: |
           make -C buildroot BR2_EXTERNAL=../ O=../output ${{ matrix.board }}_defconfig
+
+          # Release variant (v* tags only): merge the hardening fragment
+          # (last assignment wins) and verify it took effect BEFORE burning
+          # a 1-2h build. Dev builds keep the defconfig as-is (SSH +
+          # root/root login). NOTE: these guards must stay as explicit
+          # `if grep; then exit 1; fi` — under `set -e` a `! grep`-style
+          # pipeline never trips errexit, making the check decorative.
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            cat configs/release.fragment >> output/.config
+            make -C buildroot O=../output olddefconfig
+            grep -q '^# BR2_PACKAGE_OPENSSH is not set$' output/.config
+            if grep -q '^BR2_PACKAGE_OPENSSH=y' output/.config; then
+              echo "release fragment did not remove OpenSSH" >&2; exit 1
+            fi
+            if grep -q '^BR2_TARGET_ENABLE_ROOT_LOGIN=y' output/.config; then
+              echo "release fragment did not disable root login" >&2; exit 1
+            fi
+            if grep -q '^BR2_TARGET_GENERIC_ROOT_PASSWD=' output/.config; then
+              echo "root password still set in release config" >&2; exit 1
+            fi
+          fi
+
           make -C buildroot O=../output
+
+      # Belt-and-braces on top of the config guards above: inspect the actual
+      # rootfs.ext4 (what genimage stamps into both A/B slots) for sshd and an
+      # unlocked root account. Runs before any rename/upload step, so a failed
+      # assertion means nothing reaches the release.
+      - name: Assert release hardening (no sshd, root locked)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: ./scripts/assert-release-image.sh output/.config output/images/rootfs.ext4
 
       # No update bundles here: this repo ships the community image, which
       # has no OTA — devices update by re-flashing the factory image. The
       # signed .raucb production (and the signing secrets) live in the
       # private Pro OS repo, which layers on this tree.
-      - name: Rename Factory Image
+      #
+      # Tag builds ship as factory-<tag>-<board>.img (release asset; the name
+      # is load-bearing for the Pro OS repo and README). Everything else is a
+      # dev image — unmistakably named, uploaded only as a workflow artifact.
+      # ref_name can contain '/' on PRs (e.g. "123/merge"); sanitize it.
+      - name: Name image
         run: |
-          mv output/images/sdcard.img output/images/factory-${{ github.ref_name }}-${{ matrix.board }}.img
+          REF="${GITHUB_REF_NAME//\//-}"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            IMG="factory-${REF}-${{ matrix.board }}.img"
+          else
+            IMG="dev-${REF}-${{ matrix.board }}.img"
+          fi
+          mv "output/images/sdcard.img" "output/images/${IMG}"
+          echo "IMG=${IMG}" >> "$GITHUB_ENV"
+
+      - name: Upload dev image as workflow artifact
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.IMG }}
+          path: output/images/${{ env.IMG }}
+          retention-days: 14
 
       # The published images aggregate GPL/LGPL components (kernel, U-Boot,
       # BusyBox, glibc, the app, ...) whose licenses require making the
