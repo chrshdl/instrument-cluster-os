@@ -1,0 +1,12 @@
+# Release/production hardening. Merged on top of the board defconfig by CI on
+# v* tag builds (append to output/.config + `make olddefconfig`; last
+# assignment wins). Dev builds — local, PR, workflow_dispatch — never get
+# this. CI verifies the merge before building and re-verifies the built
+# rootfs via scripts/assert-release-image.sh.
+
+# No remote shell in shipped images.
+# BR2_PACKAGE_OPENSSH is not set
+
+# Lock the root account (shadow entry "root:*:", no interactive login).
+# Disabling this also drops BR2_TARGET_GENERIC_ROOT_PASSWD (depends on it).
+# BR2_TARGET_ENABLE_ROOT_LOGIN is not set

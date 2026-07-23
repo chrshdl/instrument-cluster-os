@@ -200,16 +200,27 @@ runtime, the app change reaches them via the new image.
 
 ## 6. Building without releasing (validation / local)
 
+> **Image variants:** every non-tag build (local, PR, manual dispatch) produces
+> the **dev** variant — SSH enabled, root login with password `root` — which is
+> what the revokyte dev loop (`deploy_pi.sh`, `ssh root@instrument-cluster.local`)
+> needs. Only `v*` tag builds produce the hardened **release** variant (no SSH
+> server, root account locked); CI merges `configs/release.fragment` and
+> hard-fails via `scripts/assert-release-image.sh` if the hardening didn't take.
+
 - **Validate the image build without publishing:** run the workflow manually.
   It builds both boards but skips the release upload (tag-only):
   ```bash
   gh workflow run "CI instrument-cluster" --repo chrshdl/instrument-cluster-os --ref main
   ```
 - **Pull-request builds:** opening a PR against this repo also builds the image
-  (unless the PR carries the `skip-build` label), so changes are validated before
-  merge.
+  if the PR carries the `build` label (builds are opt-in on PRs), so changes can
+  be validated before merge.
+- **Grab a flashable dev image from CI:** non-tag builds upload
+  `dev-<ref>-<board>.img` as a workflow artifact (14-day retention) — download
+  it from the run's page instead of building locally.
 - **Fully local build** (advanced) requires the Buildroot toolchain and a
   populated download cache. The GitHub Actions workflow is the supported path.
+  To test the *release* variant locally, see "Image variants" in `CLAUDE.md`.
 
 ---
 
