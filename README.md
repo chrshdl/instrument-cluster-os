@@ -8,7 +8,21 @@
 
 </div>
 
-Buildroot-based OS image for [Revokyte](https://github.com/chrshdl/revokyte), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. This repo builds the image the device boots into — pre-configured for minimal latency and fast boot, no manual setup or dependency installation required. See the [Revokyte README](https://github.com/chrshdl/revokyte) for features, architecture, and hardware details.
+## Why
+
+A race car's dashboard doesn't have a desktop behind it. It doesn't ask you to log in, install dependencies, or wait for updates — you turn the key and it's on. We believe your sim racing instruments should work the same way: an appliance you power on and trust, not a computer you maintain.
+
+## How
+
+We build the whole operating system around that one job, and nothing else:
+
+- **Boots straight into the dash** — no desktop, no login, no setup; the device is an instrument the moment it has power.
+- **Nothing to break** — a minimal Buildroot system with a read-only rootfs, tuned for fast boot and low latency.
+- **Locked down by default** — released images ship with no SSH server and no interactive root login, because an appliance shouldn't have doors you didn't ask for. Dev images exist precisely so tinkering stays a deliberate choice.
+
+## What
+
+The result is this repo: the Buildroot-based OS image for [Revokyte](https://github.com/chrshdl/revokyte), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. Flash it to an SD card and the device boots into the cluster — no manual setup or dependency installation required. See the [Revokyte README](https://github.com/chrshdl/revokyte) for features, architecture, and hardware details.
 
 ## Getting started
 
@@ -18,7 +32,7 @@ Released images are locked down: no SSH server and no interactive root login. If
 
 ## Legal
 
-This project is created for educational and personal use and provided without warranty of any kind, express or implied. Use at your own risk.
+This project is provided without warranty of any kind, express or implied. Use at your own risk.
 
 All trademarks, logos, and brand names are the property of their respective owners. *Gran Turismo*, *Gran Turismo 7*, *GT7*, and *PlayStation* are trademarks or registered trademarks of *Sony Interactive Entertainment Inc.* and *Polyphony Digital Inc.* *Assetto Corsa Competizione* and *ACC* are trademarks or registered trademarks of *Kunos Simulazioni S.r.l.* This project is independent and not affiliated with or endorsed by any of them.
 
