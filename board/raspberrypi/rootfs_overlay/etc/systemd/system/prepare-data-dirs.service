@@ -4,8 +4,11 @@ DefaultDependencies=no
 # Wait for the partition to be mounted
 Requires=data.mount
 After=data.mount
-# Run before any service that needs these folders
+# Run before any service that needs these folders. systemd-networkd is in
+# the list because it reads /etc/machine-id (created below) to build a DHCP
+# client identifier.
 Before=instrument-cluster.service sshd.service wpa_supplicant@wlan0.service
+Before=systemd-networkd.service
 
 [Service]
 Type=oneshot
@@ -37,6 +40,16 @@ ExecStart=/bin/chmod 755 /data/rauc
 #    adopts the router's advertised country (802.11d) — a hardcoded country
 #    hides channels that are legal elsewhere (e.g. 5 GHz 149-165 in the US/UK).
 ExecStart=/bin/sh -c 'CONF=/data/etc/wpa_supplicant/wpa_supplicant-wlan0.conf; [ -f "$CONF" ] || { printf "ctrl_interface=/run/wpa_supplicant\nupdate_config=1\n" > "$CONF" && chmod 600 "$CONF"; }'
+
+# 6. Initialise the machine ID. /etc/machine-id is a symlink onto /data
+#    because the rootfs is read-only, and until the target has content
+#    everything that needs a machine ID fails with ENOENT — including
+#    systemd-networkd, which cannot build a DHCP client identifier without
+#    one and then fails the entire link, leaving an associated radio with
+#    no address. This used to live in a drop-in for sshd, which release
+#    images delete along with OpenSSH; it is not an SSH concern and belongs
+#    here, where every image variant gets it.
+ExecStart=/bin/sh -c '[ -s /data/etc/machine-id ] || systemd-machine-id-setup --root=/data'
 
 [Install]
 WantedBy=sysinit.target

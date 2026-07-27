@@ -13,5 +13,14 @@ DHCP=ipv4
 IPv6AcceptRA=no
 LinkLocalAddressing=no
 
-# UseDNS defaults to yes for DHCPv4; no [DHCP] section, so there is
-# nothing else here that can fail to apply.
+[DHCPv4]
+# Identify by MAC rather than by the default DUID, which is derived from
+# /etc/machine-id. That symlink points onto /data (the rootfs is read
+# only) and a release image once shipped with nothing to create the
+# target, so networkd failed with "Failed to configure DHCPv4 client: No
+# such file or directory" and then failed the whole link — an associated
+# radio with no address. prepare-data-dirs.service now provisions the
+# machine ID, but DHCP has no reason to depend on it at all, and a
+# MAC-based client id also gives the router a stable identity for this
+# device across reflashes. UseDNS already defaults to yes.
+ClientIdentifier=mac

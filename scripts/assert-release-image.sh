@@ -51,4 +51,17 @@ case "$shadow_root" in
     *) fail "root account is not locked in etc/shadow" ;;
 esac
 
-echo "OK: release image assertions passed (no sshd, no sshd_config, root locked)."
+# The rootfs is read-only, so /etc/machine-id is a symlink onto /data and
+# something must create the target at boot. That provisioning once lived in a
+# drop-in for sshd — which this variant deletes along with OpenSSH, leaving a
+# dangling symlink that breaks everything needing a machine ID, including
+# systemd-networkd's DHCP client (it fails the whole link, so the device
+# associates to Wi-Fi and never gets an address). Hardening must not take
+# non-SSH functionality with it.
+if ! debugfs -R "cat etc/systemd/system/prepare-data-dirs.service" "$ROOTFS" 2>/dev/null \
+        | grep -q "machine-id"; then
+    fail "nothing provisions the machine id in $ROOTFS (prepare-data-dirs.service)"
+fi
+
+echo "OK: release image assertions passed (no sshd, no sshd_config, root locked,
+     machine id provisioned)."
