@@ -2,8 +2,16 @@
 Name=wlan0
 
 [Network]
-DHCP=yes
-IPv6AcceptRA=yes
+# IPv4 only, deliberately. The kernel builds IPv6 as a module
+# (CONFIG_IPV6=m), so if it is not loaded, every IPv6 step here — router
+# advertisements, DHCPv6 (which plain "DHCP=yes" also requests), and the
+# default IPv6 link-local address — fails. networkd treats that as a
+# failure of the whole link (SETUP=failed) and then never runs DHCPv4
+# either, leaving an associated radio with no address at all. Nothing the
+# cluster does needs IPv6.
+DHCP=ipv4
+IPv6AcceptRA=no
+LinkLocalAddressing=no
 
-[DHCP]
-UseDNS=yes
+# UseDNS defaults to yes for DHCPv4; no [DHCP] section, so there is
+# nothing else here that can fail to apply.
