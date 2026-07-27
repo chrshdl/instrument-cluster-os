@@ -33,7 +33,10 @@ ExecStart=/bin/chmod 755 /data/rauc
 #    configured. This lets the instrument-cluster app scan for Wi-Fi networks
 #    on-screen; the app rewrites this file (and restarts the service) when the
 #    user joins a network. Guarded so a provisioned config is never clobbered.
-ExecStart=/bin/sh -c 'CONF=/data/etc/wpa_supplicant/wpa_supplicant-wlan0.conf; [ -f "$CONF" ] || { printf "ctrl_interface=/run/wpa_supplicant\nupdate_config=1\ncountry=DE\n" > "$CONF" && chmod 600 "$CONF"; }'
+#    No country= line: the radio starts in the world regulatory domain and
+#    adopts the router's advertised country (802.11d) — a hardcoded country
+#    hides channels that are legal elsewhere (e.g. 5 GHz 149-165 in the US/UK).
+ExecStart=/bin/sh -c 'CONF=/data/etc/wpa_supplicant/wpa_supplicant-wlan0.conf; [ -f "$CONF" ] || { printf "ctrl_interface=/run/wpa_supplicant\nupdate_config=1\n" > "$CONF" && chmod 600 "$CONF"; }'
 
 [Install]
 WantedBy=sysinit.target
