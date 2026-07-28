@@ -41,7 +41,7 @@ jobs:
             bison flex cpio wget libssl-dev libgnutls28-dev
 
       - name: Checkout this repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Single source of truth for the Buildroot pin; bumped by the
       # triage-buildroot workflow (or by hand) via a one-line PR.
@@ -50,7 +50,7 @@ jobs:
         run: echo "version=$(cat BUILDROOT_VERSION)" >> "$GITHUB_OUTPUT"
 
       - name: Checkout Buildroot ${{ steps.buildroot.outputs.version }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: "buildroot/buildroot"
           ref: "${{ steps.buildroot.outputs.version }}"
@@ -119,7 +119,7 @@ jobs:
 
       - name: Upload dev image as workflow artifact
         if: "!startsWith(github.ref, 'refs/tags/')"
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ env.IMG }}
           path: output/images/${{ env.IMG }}
@@ -145,13 +145,13 @@ jobs:
 
       - name: Upload Factory Image to Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: output/images/factory-${{ github.ref_name }}-${{ matrix.board }}.img
 
       - name: Upload Legal Info to Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: output/images/legal-info-${{ github.ref_name }}-${{ matrix.board }}.tar.gz
 
