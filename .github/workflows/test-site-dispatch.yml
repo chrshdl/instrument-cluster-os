@@ -1,0 +1,21 @@
+# TEMPORARY -- delete once the dispatch has been proven.
+#
+# Makes the identical call ci.yml's notify-site job makes, with the same
+# secret, so SITE_DEPLOY_PAT can be verified without waiting for a real
+# tag build. Manual trigger only: it cannot fire on its own.
+
+name: TEMP verify site dispatch
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start publish.yml in revokyte-site
+        env:
+          GH_TOKEN: ${{ secrets.SITE_DEPLOY_PAT }}
+        run: gh workflow run publish.yml -R chrshdl/revokyte-site
