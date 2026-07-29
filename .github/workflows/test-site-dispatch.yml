@@ -18,4 +18,12 @@ jobs:
       - name: Start publish.yml in revokyte-site
         env:
           GH_TOKEN: ${{ secrets.SITE_DEPLOY_PAT }}
-        run: gh workflow run publish.yml -R chrshdl/revokyte-site
+        # REST, not `gh workflow run`: that resolves the default branch
+        # over GraphQL, which fine-grained PATs cannot read
+        # (repository.defaultBranchRef -> "Resource not accessible").
+        # This endpoint takes the ref explicitly and needs only
+        # Actions: write.
+        run: |
+          gh api -X POST \
+            repos/chrshdl/revokyte-site/actions/workflows/publish.yml/dispatches \
+            -f ref=main
