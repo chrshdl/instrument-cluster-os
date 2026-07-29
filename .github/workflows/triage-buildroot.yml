@@ -2,7 +2,7 @@
 #
 # Monthly (and on demand): if a tag newer than BUILDROOT_VERSION exists on
 # the pinned LTS series, work out what it means FOR THIS IMAGE:
-#   1. `make show-info` on both boards gives the true package set,
+#   1. `make show-info` on every board gives the true package set,
 #      implicit dependencies included;
 #   2. the release delta is filtered to those packages plus the
 #      infrastructure paths (linux/, boot/, toolchain/, ...);
@@ -74,12 +74,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential libncurses5-dev bison flex jq
 
-      - name: Compute the shipped package set (both boards)
+      - name: Compute the shipped package set (all boards)
         if: steps.rel.outputs.newer == 'true' && steps.dedupe.outputs.exists == 'false'
         id: pkgs
         run: |
           git -C buildroot checkout -q "${{ steps.rel.outputs.latest }}"
-          for board in raspberrypi4-64 raspberrypi5; do
+          for board in raspberrypi3-64 raspberrypi4-64 raspberrypi5; do
             make -C buildroot O="$PWD/output-$board" BR2_EXTERNAL="$PWD" \
               "${board}_defconfig" >/dev/null
             make -C buildroot O="$PWD/output-$board" show-info > "pkgs-$board.json"

@@ -1,0 +1,31 @@
+enable_uart=1
+arm_64bit=1
+
+disable_splash=1
+
+kernel=u-boot.bin
+
+# Enable hardware features
+dtparam=i2c_arm=on
+dtparam=spi=on
+
+# The Pi 3 has a single PL011: by default the firmware hands it to the
+# Bluetooth modem and demotes the console to the mini-UART, whose baud rate
+# follows core_freq and therefore drifts under load. This appliance never
+# uses Bluetooth (Wi-Fi is SDIO and unaffected by this), so release the
+# PL011 and keep console=ttyAMA0 identical to the Pi 4 / Pi 5 boards — for
+# U-Boot as well, which takes its console from the DT stdout-path.
+dtoverlay=disable-bt
+
+# Enable KMS graphics for modern displays
+dtoverlay=vc4-kms-v3d
+
+# Raspberry Pi Touch Display 2 (720x1280 ILI9881 DSI panel + Goodix GT911 touch,
+# mounted portrait in landscape -> rotate 270, swap x/y). The GT911 fails its
+# boot probe (-121); goodix-rebind.service in the rootfs overlay recovers it.
+dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy
+
+# Firmware/VideoCore split only — the display and GL buffers come from CMA
+# (cma= in boot.cmd), not from here. 256M as on the Pi 4 would cost a
+# quarter of this board's 1 GB for nothing.
+gpu_mem=64

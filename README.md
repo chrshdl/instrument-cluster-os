@@ -3,7 +3,7 @@
 # instrument-cluster-os
 
 [![Build Status](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml/badge.svg)](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml)
-[![Download Raspberry Pi Image](https://img.shields.io/badge/download-pi4--64%20%C2%B7%20pi5-c51d4a?logo=raspberry-pi&logoColor=white)](https://github.com/chrshdl/instrument-cluster-os/releases)
+[![Download Raspberry Pi Image](https://img.shields.io/badge/download-pi3--64%20%C2%B7%20pi4--64%20%C2%B7%20pi5-c51d4a?logo=raspberry-pi&logoColor=white)](https://github.com/chrshdl/instrument-cluster-os/releases)
 [![Discord](https://img.shields.io/discord/1452332495683981478?label=chat&logo=discord&color=5865F2)](https://discord.gg/dEQJSuva7K)
 
 </div>
@@ -26,7 +26,7 @@ The result is this repo: the Buildroot-based OS image for [Revokyte](https://git
 
 ## Getting started
 
-Download the image for your board (Raspberry Pi 4 or 5) from the [releases](https://github.com/chrshdl/instrument-cluster-os/releases) and flash it to an SD card (e.g. with Raspberry Pi Imager). To pre-provision Wi-Fi, place a filled-in `wpa_supplicant-wlan0.conf` on the boot partition.
+Download the image for your board (Raspberry Pi 3 B/B+, 4 or 5) from the [releases](https://github.com/chrshdl/instrument-cluster-os/releases) and flash it to an SD card (e.g. with Raspberry Pi Imager). To pre-provision Wi-Fi, place a filled-in `wpa_supplicant-wlan0.conf` on the boot partition.
 
 Released images are locked down: no SSH server and no interactive root login. If you want to hack on the device, use a dev image instead — download a `dev-*.img` artifact from a [CI workflow run](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml) or build one locally (dev is the default build variant) — which has SSH enabled with user `root`, password `root`.
 

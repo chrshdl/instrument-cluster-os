@@ -1,0 +1,12 @@
+bootdelay=1
+baudrate=115200
+stdin=serial,usbkbd
+stdout=serial
+stderr=serial
+BOOT_ORDER=A B
+BOOT_A_LEFT=3
+BOOT_B_LEFT=3
+scriptaddr=0x05400000
+kernel_addr_r=0x02000000
+fdt_addr_r=0x06000000
+bootcmd=fatload mmc 0:1 ${scriptaddr} boot.scr; source ${scriptaddr}
