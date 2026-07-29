@@ -155,17 +155,30 @@ jobs:
         with:
           files: output/images/legal-info-${{ github.ref_name }}-${{ matrix.board }}.tar.gz
 
-  # The website's /licenses page resolves the latest release's legal-info
-  # links at its own build time; rebuild it as soon as a release build has
-  # attached all assets so the page never waits for the daily cron.
+  # revokyte-site's /licenses and /de/lizenzen/ resolve this release's
+  # legal-info links at their own build time, and name the release they
+  # list as the current one -- so without a rebuild they assert a stale
+  # tag. `needs: build` is the point: it holds the dispatch until every
+  # board has attached its legal-info archive, so the site never reads a
+  # half-populated release.
+  #
+  # Previously targeted chrshdl.github.io/deploy.yml. That repo is gone
+  # -- the site is built from chrshdl/revokyte-site and published to
+  # chrshdl/revokyte-www -- so this job had been pointing at nothing
+  # since the move. The site also had a daily cron as a backstop; that
+  # is gone too, which makes this job the only thing keeping those pages
+  # current.
+  #
   # SITE_DEPLOY_PAT: fine-grained PAT with Actions read/write on
-  # chrshdl.github.io (the workflow token cannot dispatch across repos).
+  # chrshdl/revokyte-site (the workflow token cannot dispatch across
+  # repos). Actions rather than Contents: this only has to start a
+  # workflow there, never push to it.
   notify-site:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Rebuild chrshdl.github.io (licenses page)
+      - name: Rebuild revokyte-site (licence pages)
         env:
           GH_TOKEN: ${{ secrets.SITE_DEPLOY_PAT }}
-        run: gh workflow run deploy.yml -R chrshdl/chrshdl.github.io
+        run: gh workflow run publish.yml -R chrshdl/revokyte-site

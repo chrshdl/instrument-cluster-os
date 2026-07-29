@@ -150,6 +150,29 @@ Release assets are published using the default `GITHUB_TOKEN` — no PAT require
 
 PRs opened with the default `GITHUB_TOKEN` don't trigger the CI workflow (GitHub recursion guard): either configure the optional `TRIAGE_PR_PAT` secret so bump PRs behave like human-opened ones, or add the `build` label and close/reopen the PR to run the image build.
 
+### Marketing site rebuild on release
+
+`ci.yml`'s `notify-site` job runs `gh workflow run publish.yml -R
+chrshdl/revokyte-site` on `v*` tag builds. That site's `/licenses` and
+`/de/lizenzen/` resolve their `legal-info-*` download links at build time from
+this repo's latest release and name it as the current one, so without a
+rebuild they assert a stale tag. `needs: build` holds the dispatch until every
+board has attached its archive — firing on the release event instead would
+race a half-populated release.
+
+It previously targeted `chrshdl.github.io/deploy.yml`. That repo no longer
+exists (the site is built from `chrshdl/revokyte-site` and published to
+`chrshdl/revokyte-www`), so the job had been pointing at nothing since the
+move; it last ran green on v0.2.9. The site also had a daily cron as a
+backstop, which is gone — this job is now the only thing keeping those pages
+current, so a failure here means stale licence links until someone runs
+`publish.yml` by hand.
+
+Needs `SITE_DEPLOY_PAT`: fine-grained PAT, `revokyte-site` only, **Actions:
+read and write** — enough to start a workflow there, and deliberately not
+Contents, which would also allow pushing to it. The default `GITHUB_TOKEN`
+cannot dispatch across repos.
+
 ### Coordinated changes with `revokyte` (avoid a throwaway build)
 
 When an OS-side change pairs with an app change (e.g. a new app feature that
