@@ -2,6 +2,7 @@
 
 # instrument-cluster-os
 
+[![Website](https://img.shields.io/badge/website-revokyte.com-3dd1d8)](https://www.revokyte.com)
 [![Build Status](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml/badge.svg)](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml)
 [![Download Raspberry Pi Image](https://img.shields.io/badge/download-pi4--64%20%C2%B7%20pi5-c51d4a?logo=raspberry-pi&logoColor=white)](https://github.com/chrshdl/instrument-cluster-os/releases)
 [![Discord](https://img.shields.io/discord/1452332495683981478?label=chat&logo=discord&color=5865F2)](https://discord.gg/dEQJSuva7K)
@@ -22,7 +23,7 @@ We build the whole operating system around that one job, and nothing else:
 
 ## What
 
-The result is this repo: the Buildroot-based OS image for [Revokyte](https://github.com/chrshdl/revokyte), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. Flash it to an SD card and the device boots into the cluster — no manual setup or dependency installation required. See the [Revokyte README](https://github.com/chrshdl/revokyte) for features, architecture, and hardware details.
+The result is this repo: the Buildroot-based OS image for [Revokyte](https://www.revokyte.com), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. Flash it to an SD card and the device boots into the cluster — no manual setup or dependency installation required. See the [Revokyte README](https://github.com/chrshdl/revokyte) for features, architecture, and hardware details.
 
 ## Getting started
 
