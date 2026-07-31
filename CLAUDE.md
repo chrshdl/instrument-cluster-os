@@ -89,6 +89,26 @@ Each package under `package/` follows the standard Buildroot pattern: a `Config.
 - **python-synthesizer**: Currently uses `SITE_METHOD = local` pointing to `/Users/cwasilei/projects/synthesizer`. Must be changed to a GitHub tag before CI can build it.
 - **python-pygame-261**: Pinned to a specific commit hash, not a release tag — this is intentional to track a pre-2.6.1 fix.
 
+### Display panels (RPi4)
+
+Two DSI panels are supported, selected in `board/raspberrypi4-64/config.txt` (on the
+FAT partition, mounted rw at `/boot` on the device — a user switches panels by
+swapping the active `dtoverlay` line and rebooting; the change survives OTA but not
+a reflash):
+
+- **Raspberry Pi Touch Display 2** (720x1280 portrait, default) —
+  `dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy`
+- **Waveshare 5inch DSI LCD** (800x480, SKU WAV-18396) —
+  `dtoverlay=vc4-kms-dsi-7inch` (the panel emulates the official RPi 7" touchscreen v1)
+
+No build change is needed to switch: the `.dtbo` is already on the FAT partition
+(`BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTB_OVERLAYS` copies the whole `overlays/` dir) and
+`linux.config` builds both panel stacks in (ILI9881C/Goodix and
+panel-raspberrypi-touchscreen/TC358762/attiny-regulator/EDT-FT5x06). The app
+auto-detects the panel by resolution (`display.py` in revokyte), and
+`ota-health-check.sh` is deliberately panel-agnostic (`/dev/dri/*`, any input event
+device).
+
 ### SD Card Layout (A/B OTA)
 
 ```
