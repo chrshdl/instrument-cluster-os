@@ -1,0 +1,141 @@
+name: Dev image
+
+# Build a flashable DEV image from any revokyte ref — branch, tag, or SHA —
+# without touching the release chain: no revokyte release asset, no pin
+# bump, no commit anywhere. The app tarball is built right here (the same
+# `git archive` bump-os uses) and pre-seeded into Buildroot's download
+# directory, so the sha256 pin is satisfied locally and the release
+# .mk/.hash on this branch are only patched in the runner's workspace.
+#
+# Dev images keep the defconfig as-is (SSH + root login, no release
+# hardening) and upload as workflow artifacts — never as release assets.
+# For an image of the *pinned* app version, dispatch ci.yml instead.
+#
+#   gh workflow run dev-image.yml -f revokyte_ref=<branch|sha> [-f board=raspberrypi5]
+
+on:
+  workflow_dispatch:
+    inputs:
+      revokyte_ref:
+        description: "revokyte branch, tag, or SHA to bake into the image"
+        required: true
+        default: "main"
+      board:
+        description: "board to build"
+        type: choice
+        options: [all, raspberrypi4-64, raspberrypi5]
+        default: all
+
+permissions:
+  contents: read
+
+jobs:
+  boards:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.pick.outputs.list }}
+    steps:
+      - id: pick
+        run: |
+          if [ "${{ inputs.board }}" = "all" ]; then
+            echo 'list=["raspberrypi4-64","raspberrypi5"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'list=["${{ inputs.board }}"]' >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: boards
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        board: ${{ fromJSON(needs.boards.outputs.list) }}
+    steps:
+      - name: Free disk space
+        uses: endersonmenezes/free-disk-space@7901478139cff6e9d44df5972fd8ab8fcade4db1 # v3.2.2
+        with:
+          remove_android: true
+          remove_tool_cache: true
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential git python3 unzip rsync bc libncurses5-dev \
+            bison flex cpio wget libssl-dev libgnutls28-dev
+
+      - name: Checkout this repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Full history + tags: git archive's export-subst fills
+      # .git_archival.txt (describe-name needs the tag objects), which is
+      # how setuptools_scm derives the app version inside the build.
+      - name: Checkout revokyte at ${{ inputs.revokyte_ref }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: chrshdl/revokyte
+          ref: ${{ inputs.revokyte_ref }}
+          path: revokyte
+          fetch-depth: 0
+
+      # Same archive bump-os builds for releases, but consumed locally:
+      # pre-seeding BR2_DL_DIR means Buildroot verifies the hash and never
+      # goes to the network, so the (workspace-only) .mk/.hash patch below
+      # can point at a version that exists nowhere else.
+      - name: Seed the app tarball and patch the pin (workspace only)
+        id: app
+        run: |
+          APP_SHA=$(git -C revokyte rev-parse --short=9 HEAD)
+          VERSION="dev-g${APP_SHA}"
+          TARBALL="python-instrument-cluster-${VERSION}.tar.gz"
+
+          git -C revokyte archive --format=tar.gz \
+            --prefix="python-instrument-cluster-${VERSION}/" \
+            -o "${GITHUB_WORKSPACE}/${TARBALL}" HEAD
+          SHA256=$(sha256sum "${TARBALL}" | awk '{print $1}')
+
+          mkdir -p dl/python-instrument-cluster
+          mv "${TARBALL}" dl/python-instrument-cluster/
+
+          MK="package/python-instrument-cluster/python-instrument-cluster.mk"
+          HASH="package/python-instrument-cluster/python-instrument-cluster.hash"
+          sed -i "s/^PYTHON_INSTRUMENT_CLUSTER_VERSION = .*/PYTHON_INSTRUMENT_CLUSTER_VERSION = ${VERSION}/" "$MK"
+          sed -i "s|^sha256  [0-9a-f]*  python-instrument-cluster-.*\.tar\.gz$|sha256  ${SHA256}  ${TARBALL}|" "$HASH"
+
+          echo "app_sha=${APP_SHA}" >> "$GITHUB_OUTPUT"
+          echo "Baking revokyte $(git -C revokyte log --oneline -1)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Read pinned Buildroot version
+        id: buildroot
+        run: echo "version=$(cat BUILDROOT_VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout Buildroot ${{ steps.buildroot.outputs.version }}
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: "buildroot/buildroot"
+          ref: "${{ steps.buildroot.outputs.version }}"
+          path: buildroot
+
+      # Always the dev variant: defconfig as-is (SSH + root/root login),
+      # no release fragment, no IC_OS_VERSION.
+      - name: Build for ${{ matrix.board }}
+        env:
+          BR2_DL_DIR: ${{ github.workspace }}/dl
+        run: |
+          make -C buildroot BR2_EXTERNAL=../ O=../output ${{ matrix.board }}_defconfig
+          make -C buildroot O=../output
+
+      - name: Name image
+        run: |
+          REF_SAFE="${{ inputs.revokyte_ref }}"
+          REF_SAFE="${REF_SAFE//\//-}"
+          IMG="dev-revokyte-${REF_SAFE}-g${{ steps.app.outputs.app_sha }}-${{ matrix.board }}.img"
+          mv "output/images/sdcard.img" "output/images/${IMG}"
+          echo "IMG=${IMG}" >> "$GITHUB_ENV"
+
+      - name: Upload dev image as workflow artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ env.IMG }}
+          path: output/images/${{ env.IMG }}
+          retention-days: 14
