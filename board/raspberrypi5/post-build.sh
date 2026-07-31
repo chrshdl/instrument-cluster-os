@@ -11,6 +11,9 @@ BR2_CONFIG=$BR2_CONFIG
 if grep -q "BR2_DEFCONFIG=.*raspberrypi4-64" "$BR2_CONFIG"; then
     COMPAT_STR="InstrumentCluster-RPi4"
     BOARD_NAME="Raspberry Pi 4 B"
+elif grep -q "BR2_DEFCONFIG=.*raspberrypi3-64" "$BR2_CONFIG"; then
+    COMPAT_STR="InstrumentCluster-RPi3"
+    BOARD_NAME="Raspberry Pi 3 B/B+"
 else
     COMPAT_STR="InstrumentCluster-RPi5"
     BOARD_NAME="Raspberry Pi 5"

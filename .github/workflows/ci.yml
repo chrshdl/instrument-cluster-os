@@ -21,11 +21,11 @@ jobs:
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'build')
     strategy:
-      # Build both boards independently so one board's failure doesn't cancel
-      # the other (easier diagnosis; matters on PRs that don't sign/upload).
+      # Build every board independently so one board's failure doesn't cancel
+      # the others (easier diagnosis; matters on PRs that don't sign/upload).
       fail-fast: false
       matrix:
-        board: [raspberrypi4-64, raspberrypi5]
+        board: [raspberrypi3-64, raspberrypi4-64, raspberrypi5]
     steps:
       - name: Free disk space
         uses: endersonmenezes/free-disk-space@7901478139cff6e9d44df5972fd8ab8fcade4db1 # v3.2.2

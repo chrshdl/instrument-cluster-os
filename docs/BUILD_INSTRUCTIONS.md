@@ -154,9 +154,9 @@ git pull                      # make sure you have the auto-bump commit
 git tag v0.1.3 && git push origin v0.1.3
 ```
 
-This builds the Pi image for both boards (`raspberrypi4-64`, `raspberrypi5`) and,
-because it is a tag, also produces the **factory image** and **legal-info bundle**
-and uploads them to the image Release.
+This builds the Pi image for every board (`raspberrypi3-64`, `raspberrypi4-64`,
+`raspberrypi5`) and, because it is a tag, also produces the **factory image** and
+**legal-info bundle** and uploads them to the image Release.
 
 ```bash
 gh run watch --repo chrshdl/instrument-cluster-os
@@ -208,7 +208,7 @@ runtime, the app change reaches them via the new image.
 > hard-fails via `scripts/assert-release-image.sh` if the hardening didn't take.
 
 - **Validate the image build without publishing:** run the workflow manually.
-  It builds both boards but skips the release upload (tag-only):
+  It builds every board but skips the release upload (tag-only):
   ```bash
   gh workflow run "CI instrument-cluster" --repo chrshdl/instrument-cluster-os --ref main
   ```

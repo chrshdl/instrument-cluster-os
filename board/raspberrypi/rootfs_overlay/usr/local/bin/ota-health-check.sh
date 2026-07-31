@@ -23,8 +23,10 @@ check_display() {
 }
 
 check_gpu() {
-    # V3D render node - the app's GL context runs on it
-    # (MESA_LOADER_DRIVER_OVERRIDE=v3d).
+    # Render node - the app's GL context runs on it. Which driver backs it is
+    # board-specific (V3D on the Pi 4/5, VideoCore IV's vc4 on the Pi 3, see
+    # MESA_LOADER_DRIVER_OVERRIDE in the app unit and its Pi 3 drop-in), so
+    # match the node rather than the driver.
     ls /dev/dri/renderD* >/dev/null 2>&1
 }
 
