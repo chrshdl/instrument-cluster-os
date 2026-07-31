@@ -7,8 +7,11 @@
 # codeload tarball: release assets are immutable bytes, while GitHub's
 # generated archives are not byte-stable and have broken the sha256 pin
 # before when GitHub changed compression.
-PYTHON_INSTRUMENT_CLUSTER_VERSION = 0.2.20
-PYTHON_INSTRUMENT_CLUSTER_SITE = https://github.com/chrshdl/revokyte/releases/download/v$(PYTHON_INSTRUMENT_CLUSTER_VERSION)
+# DEV PIN — testing revokyte PR #4 (engine simulation); not a release.
+# The asset lives on the dev-engine-simulation.1 prerelease, whose tag
+# deliberately does not match v* (so bump-os never produced it).
+PYTHON_INSTRUMENT_CLUSTER_VERSION = 0.2.21.dev1
+PYTHON_INSTRUMENT_CLUSTER_SITE = https://github.com/chrshdl/revokyte/releases/download/dev-engine-simulation.1
 
 PYTHON_INSTRUMENT_CLUSTER_LICENSE = GPL-3.0-or-later
 PYTHON_INSTRUMENT_CLUSTER_LICENSE_FILES = LICENSE
