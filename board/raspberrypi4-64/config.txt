@@ -10,9 +10,9 @@ dtparam=spi=on
 
 dtoverlay=vc4-kms-v3d
 # Panel selection — exactly one of the dtoverlay lines below must be active.
-# Raspberry Pi Touch Display 2 (720x1280 portrait, default):
-dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy
-# Waveshare 5inch DSI LCD, 800x480 (SKU WAV-18396):
-#dtoverlay=vc4-kms-dsi-7inch
+# Raspberry Pi Touch Display 2 (720x1280 portrait):
+#dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy
+# Waveshare 5inch DSI LCD, 800x480 (SKU WAV-18396, default):
+dtoverlay=vc4-kms-dsi-7inch
 
 gpu_mem=256
