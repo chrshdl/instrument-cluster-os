@@ -6,8 +6,11 @@ Requires=data.mount
 After=data.mount
 # Run before any service that needs these folders. systemd-networkd is in
 # the list because it reads /etc/machine-id (created below) to build a DHCP
-# client identifier.
-Before=instrument-cluster.service sshd.service wpa_supplicant@wlan0.service
+# client identifier. instrument-cluster is deliberately NOT here: it starts
+# early (before /data is even mounted) to overlap its import phase with the
+# post-power-cut journal replay, waits for the mount itself, and creates
+# /data/config on demand when writing.
+Before=sshd.service wpa_supplicant@wlan0.service
 Before=systemd-networkd.service
 
 [Service]
@@ -21,6 +24,11 @@ ExecStart=/bin/mkdir -p /data/opt/telemetry
 
 # 2. Create Config Directory (Target for root/.config symlink)
 ExecStart=/bin/mkdir -p /data/config
+
+# 2b. Mesa shader cache (MESA_SHADER_CACHE_DIR — see the instrument-cluster
+#     shader-cache.conf drop-in). The rootfs is read-only, so the cache must
+#     live on /data or shaders recompile on every boot.
+ExecStart=/bin/mkdir -p /data/cache/mesa
 
 # 3. Create System Directories (Targets for etc/ssh & etc/wpa_supplicant)
 ExecStart=/bin/mkdir -p /data/etc/ssh

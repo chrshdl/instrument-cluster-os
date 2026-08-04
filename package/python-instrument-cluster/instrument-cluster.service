@@ -1,7 +1,19 @@
 [Unit]
 Description=instrument-cluster
-After=local-fs.target splashscreen.service
+# Deliberately NOT ordered after local-fs.target (which DefaultDependencies
+# would imply via basic.target): starting early lets the ~3 s of Python/
+# pygame/numpy imports overlap the /data ext4 journal replay that follows a
+# power cut. The app waits for /data itself right before reading its config
+# (main._wait_for_config_volume), so nothing here races the mount.
+DefaultDependencies=no
 Requires=splashscreen.service
+# splashscreen is pulled up by udev the moment /dev/fb0 exists, so ordering
+# after it also guarantees the display stack is probed before SDL starts.
+After=splashscreen.service systemd-journald.socket
+# DefaultDependencies=no also drops the implicit shutdown ordering — put it
+# back so the app still stops cleanly on reboot/poweroff.
+Conflicts=shutdown.target
+Before=shutdown.target
 
 StartLimitIntervalSec=60
 StartLimitBurst=3

@@ -78,6 +78,8 @@ package/              # One directory per custom package
   python-pygame-261/           # Pinned pygame build (specific git commit)
   python-pyopengl/             # PyOpenGL with Mesa/EGL deps
 scripts/              # assert-release-image.sh — hard-fail guard for release builds
+tools/                # eeprom_read.py — read-only Pi 5 EEPROM dump/config reader (runs on the device)
+docs/                 # BUILD_INSTRUCTIONS.md, EEPROM_PROVISIONING.md (per-board bootloader config)
 keys/                 # RAUC signing cert/key (not committed; generated externally)
 ```
 
@@ -140,6 +142,23 @@ mmcblk0p4  /data    ext4  512M   Persistent data (Wi-Fi config, RAUC status, log
 | `wifi-setup.service` | One-time: copies `wpa_supplicant-wlan0.conf` from `/boot` to `/etc/wpa_supplicant/` on first boot |
 | `splashscreen.service` | Shows `etc/splash.png` via `fbv` during boot |
 | `prepare-data-dirs.service` | Creates expected dirs on `/data` partition before other services start |
+| `goodix-rebind.service` | Rebinds the GT911 touch driver after the DSI panel is up (boot probe race) |
+
+**Boot-time ordering (deliberate, fragile):** `instrument-cluster.service`,
+`splashscreen.service` and `goodix-rebind.service` all run with
+`DefaultDependencies=no` and start *before* `local-fs.target`, so the app's
+~3 s Python/pygame import phase overlaps the `/data` ext4 journal replay that
+follows a power cut; the app waits for the `/data` mount itself right before
+reading its config (revokyte `main._wait_for_config_volume`). The splash is
+pulled up by a udev rule the moment fb0 exists (`99-splash.rules`) — never
+order it after `local-fs.target`. **Hazard:** any unit ordered
+`Before=instrument-cluster.service` must also drop default dependencies (plus
+`Conflicts=shutdown.target`/`Before=shutdown.target`), or its implicit
+`After=basic.target` silently re-serializes the app behind the mounts — this
+exact regression happened with `goodix-rebind`. Mesa's shader cache lives on
+`/data` (`instrument-cluster.service.d/shader-cache.conf` in the overlay)
+because the rootfs is read-only. Per-board bootloader EEPROM settings (boot
+order, UART) are provisioned separately — see `docs/EEPROM_PROVISIONING.md`.
 
 Wi-Fi credentials are provisioned by placing a pre-filled `wpa_supplicant-wlan0.conf` on the boot FAT partition. `install-wifi-config.sh` moves it to `/etc/wpa_supplicant/` and renames the source so it only runs once.
 
