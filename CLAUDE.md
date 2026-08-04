@@ -72,7 +72,7 @@ configs/              # Buildroot defconfigs + release.fragment (release hardeni
 board/
   raspberrypi/        # Shared: rootfs overlay, patches applied to linux/u-boot
   raspberrypi4-64/    # RPi4-specific: linux.config, genimage.cfg, boot.cmd, U-Boot fragment
-  raspberrypi5/       # RPi5-specific: genimage.cfg, boot.cmd, U-Boot fragment (kernel config is upstream bcm2712_defconfig; linux.fragment is an unreferenced snapshot of it)
+  raspberrypi5/       # RPi5-specific: genimage.cfg, boot.cmd, U-Boot fragment (kernel config is upstream bcm2712_defconfig + Buildroot's 4k-page fragment)
 package/              # One directory per custom package
   python-instrument-cluster/   # Main app (fetched from GitHub)
   python-pygame-261/           # Pinned pygame build (specific git commit)
