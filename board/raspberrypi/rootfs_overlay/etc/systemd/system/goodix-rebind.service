@@ -3,8 +3,16 @@ Description=Rebind Goodix GT911 touchscreen (boot probe race with DSI panel)
 
 # The touch depends on the DSI panel MCU being up; the script retries until the
 # input device appears. Order before the cluster so pygame sees the touch.
-After=local-fs.target splashscreen.service
-Before=instrument-cluster.service
+#
+# DefaultDependencies=no and no local-fs.target here: the script touches only
+# /sys and /proc, and anything ordered Before=instrument-cluster is on the
+# boot-critical path — with default deps this unit waited for basic.target
+# (⊃ local-fs ⊃ the post-power-cut /data journal replay) and dragged the app
+# behind it, undoing the app's own early start.
+DefaultDependencies=no
+After=splashscreen.service
+Before=instrument-cluster.service shutdown.target
+Conflicts=shutdown.target
 
 [Service]
 Type=oneshot

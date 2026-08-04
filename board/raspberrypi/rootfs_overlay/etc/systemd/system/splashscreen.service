@@ -1,11 +1,18 @@
 [Unit]
 Description=Show Splash Screen
 DefaultDependencies=no
-After=local-fs.target
+# Started by udev the moment fb0 appears (99-splash.rules). Deliberately NOT
+# ordered after local-fs.target: fbv and splash.png live on the rootfs, and
+# waiting for /boot + /data — which replay dirty journals after a power cut —
+# kept the screen black until ~7s. With this ordering the splash is up at ~3.7s.
+After=systemd-udevd.service
 
 [Service]
 Type=oneshot
-ExecStart=/bin/sh -c "echo 0 > /sys/class/graphics/fb0/blank && /usr/bin/fbv -i -f /etc/splash.png"
+# The unit is also pulled in early via multi-user.target.wants and the app's
+# Requires=, which can race the fb0 udev event — poll for up to 8s before
+# drawing. "$$" is systemd escaping for a literal "$" handed to the shell.
+ExecStart=/bin/sh -c "n=0; while [ ! -e /sys/class/graphics/fb0/blank ] && [ $$n -lt 80 ]; do sleep 0.1; n=$$((n+1)); done; echo 0 > /sys/class/graphics/fb0/blank && exec /usr/bin/fbv -i -f /etc/splash.png"
 StandardInput=null
 StandardOutput=null
 RemainAfterExit=yes
