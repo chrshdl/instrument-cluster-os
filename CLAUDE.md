@@ -72,7 +72,7 @@ configs/              # Buildroot defconfigs + release.fragment (release hardeni
 board/
   raspberrypi/        # Shared: rootfs overlay, patches applied to linux/u-boot
   raspberrypi4-64/    # RPi4-specific: linux.config, genimage.cfg, boot.cmd, U-Boot fragment
-  raspberrypi5/       # RPi5-specific: linux.fragment, genimage.cfg
+  raspberrypi5/       # RPi5-specific: genimage.cfg, boot.cmd, U-Boot fragment (kernel config is upstream bcm2712_defconfig; linux.fragment is an unreferenced snapshot of it)
 package/              # One directory per custom package
   python-instrument-cluster/   # Main app (fetched from GitHub)
   python-pygame-261/           # Pinned pygame build (specific git commit)
@@ -91,25 +91,29 @@ Each package under `package/` follows the standard Buildroot pattern: a `Config.
 - **python-synthesizer**: Currently uses `SITE_METHOD = local` pointing to `/Users/cwasilei/projects/synthesizer`. Must be changed to a GitHub tag before CI can build it.
 - **python-pygame-261**: Pinned to a specific commit hash, not a release tag — this is intentional to track a pre-2.6.1 fix.
 
-### Display panels (RPi4)
+### Display panels
 
-Two DSI panels are supported, selected in `board/raspberrypi4-64/config.txt` (on the
-FAT partition, mounted rw at `/boot` on the device — a user switches panels by
-swapping the active `dtoverlay` line and rebooting; the change survives OTA but not
-a reflash):
+Two DSI panels are supported on both boards, selected in the board's `config.txt`
+(`board/raspberrypi4-64/` or `board/raspberrypi5/`; lives on the FAT partition,
+mounted rw at `/boot` on the device — a user switches panels by swapping the
+active `dtoverlay` line and rebooting; the change survives OTA but not a reflash):
 
-- **Raspberry Pi Touch Display 2** (720x1280 portrait, default) —
+- **Raspberry Pi Touch Display 2** (720x1280 portrait; Pi 5 default) —
   `dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy`
-- **Waveshare 5inch DSI LCD** (800x480, SKU WAV-18396) —
+- **Waveshare 5inch DSI LCD** (800x480, SKU WAV-18396; Pi 4 default) —
   `dtoverlay=vc4-kms-dsi-7inch` (the panel emulates the official RPi 7" touchscreen v1)
 
+On the Pi 5 both overlays attach to the CAM/DISP 1 connector by default; append
+`,dsi0` to use CAM/DISP 0.
+
 No build change is needed to switch: the `.dtbo` is already on the FAT partition
-(`BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTB_OVERLAYS` copies the whole `overlays/` dir) and
-`linux.config` builds both panel stacks in (ILI9881C/Goodix and
-panel-raspberrypi-touchscreen/TC358762/attiny-regulator/EDT-FT5x06). The app
-auto-detects the panel by resolution (`display.py` in revokyte), and
-`ota-health-check.sh` is deliberately panel-agnostic (`/dev/dri/*`, any input event
-device).
+(`BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTB_OVERLAYS` copies the whole `overlays/` dir)
+and both kernels carry both panel stacks — ILI9881C/Goodix and
+panel-raspberrypi-touchscreen/TC358762/attiny-regulator/EDT-FT5x06 — built in on
+the Pi 4 (`linux.config`), as modules on the Pi 5 (upstream `bcm2712_defconfig`,
+autoloaded when the overlay enables the DT nodes). The app auto-detects the panel
+by resolution (`display.py` in revokyte), and `ota-health-check.sh` is
+deliberately panel-agnostic (`/dev/dri/*`, any input event device).
 
 ### SD Card Layout (A/B OTA)
 

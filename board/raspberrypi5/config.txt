@@ -12,14 +12,14 @@ dtparam=spi=on
 # Enable KMS graphics for modern displays
 dtoverlay=vc4-kms-v3d-pi5
 
+# Panel selection — exactly one of the dtoverlay lines below must be active.
+# Both overlays use the CAM/DISP 1 connector by default; append ,dsi0 for CAM/DISP 0.
 # Raspberry Pi Touch Display 2 (720x1280 ILI9881 DSI panel + Goodix GT911 touch,
-# mounted portrait in landscape -> rotate 270, swap x/y). The GT911 fails its
-# boot probe (-121); goodix-rebind.service in the rootfs overlay recovers it.
+# mounted portrait in landscape -> rotate 270, swap x/y; default). The GT911
+# fails its boot probe (-121); goodix-rebind.service in the rootfs overlay
+# recovers it.
 dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy
-
-# Waveshare 7" DSI LCD (C) — alternative panel, swap back in if using it:
-#dtoverlay=vc4-kms-dsi-waveshare-panel,7_0_inchC,i2c1
-# Some Waveshare panels work best with 2 framebuffers (helps with tearing)
-#max_framebuffers=2
+# Waveshare 5inch DSI LCD, 800x480 (SKU WAV-18396):
+#dtoverlay=vc4-kms-dsi-7inch
 
 gpu_mem=256
