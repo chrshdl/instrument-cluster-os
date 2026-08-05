@@ -27,7 +27,7 @@ The result is this repo: the Buildroot-based OS image for [Revokyte](https://www
 
 ## Getting started
 
-Download the image for your board (Raspberry Pi 4 or 5) from the [releases](https://github.com/chrshdl/instrument-cluster-os/releases) and flash it to an SD card (e.g. with Raspberry Pi Imager). To pre-provision Wi-Fi, place a filled-in `wpa_supplicant-wlan0.conf` on the boot partition.
+Download the image for your board (Raspberry Pi 4 or 5) from the [releases](https://github.com/chrshdl/instrument-cluster-os/releases) and flash it to an SD card (e.g. with Raspberry Pi Imager). On first boot the cluster opens an on-screen Wi-Fi setup. To skip it, pre-provision Wi-Fi by filling in the `wpa_supplicant-wlan0.conf` template on the boot partition (before first boot, or any time later by re-inserting the SD card). A template left unedited — placeholder `YOUR_WIFI_SSID` still in place — is deliberately ignored by `install-wifi-config.sh`: installing it would count as provisioned credentials, suppress the on-screen setup, and leave the boot waiting on a network that doesn't exist.
 
 Released images are locked down: no SSH server and no interactive root login. If you want to hack on the device, use a dev image instead — download a `dev-*.img` artifact from a [CI workflow run](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml) or build one locally (dev is the default build variant) — which has SSH enabled with user `root`, password `root`.
 
