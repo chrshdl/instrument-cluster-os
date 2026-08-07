@@ -119,7 +119,12 @@ and both kernels carry all three panel stacks — ILI9881C/Goodix,
 panel-raspberrypi-touchscreen/TC358762/attiny-regulator/EDT-FT5x06, and
 panel-waveshare-dsi/Goodix — built in on the Pi 4 (`linux.config`), as modules
 on the Pi 5 (upstream `bcm2712_defconfig`, autoloaded when the overlay enables
-the DT nodes). The app auto-detects the panel by resolution (`display.py` in
+the DT nodes). Exception: `panel-waveshare-dsi` **must stay `=m` on the Pi 4
+too** — its probe swallows `devm_mipi_dsi_attach`'s EPROBE_DEFER (dev_errs but
+`return 0`), so built-in it probes before the vc4 DSI host, never retries, and
+vc4's component master waits forever: no display card at all, black screen. As
+a module, udev loads it after vc4 is up and the attach succeeds first try —
+the same reason Raspberry Pi OS ships it as a module. The app auto-detects the panel by resolution (`display.py` in
 revokyte; 1024x600 maps to its `waveshare_7` profile), and
 `ota-health-check.sh` is deliberately panel-agnostic (`/dev/dri/*`, any input
 event device).
