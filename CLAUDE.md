@@ -93,7 +93,7 @@ Each package under `package/` follows the standard Buildroot pattern: a `Config.
 
 ### Display panels
 
-Two DSI panels are supported on both boards, selected in the board's `config.txt`
+Three DSI panels are supported on both boards, selected in the board's `config.txt`
 (`board/raspberrypi4-64/` or `board/raspberrypi5/`; lives on the FAT partition,
 mounted rw at `/boot` on the device — a user switches panels by swapping the
 active `dtoverlay` line and rebooting; the change survives OTA but not a reflash):
@@ -102,18 +102,27 @@ active `dtoverlay` line and rebooting; the change survives OTA but not a reflash
   `dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy`
 - **Waveshare 5inch DSI LCD** (800x480, SKU WAV-18396; Pi 4 default) —
   `dtoverlay=vc4-kms-dsi-7inch` (the panel emulates the official RPi 7" touchscreen v1)
+- **Waveshare 7inch DSI LCD (C)** (1024x600) —
+  `dtoverlay=vc4-kms-dsi-waveshare-panel,7_0_inchC,i2c1`. Its panel control +
+  touch I2C is not on the DSI ribbon but on a separate 4-pin cable wired to 5V
+  and the I2C1 pins (GPIO 2/3) — the `i2c1` parameter reflects that wiring and
+  is required.
 
-On the Pi 5 both overlays attach to the CAM/DISP 1 connector by default; append
-`,dsi0` to use CAM/DISP 0.
+On the Pi 5 all overlays attach to the CAM/DISP 1 connector by default; append
+`,dsi0` to use CAM/DISP 0 — except on the Waveshare 7" (C), where `,dsi0` must
+come *before* `,i2c1` (`7_0_inchC,dsi0,i2c1`): overlay parameters apply in
+order and both retarget the control I2C bus, so `,i2c1` must be last.
 
 No build change is needed to switch: the `.dtbo` is already on the FAT partition
 (`BR2_PACKAGE_RPI_FIRMWARE_INSTALL_DTB_OVERLAYS` copies the whole `overlays/` dir)
-and both kernels carry both panel stacks — ILI9881C/Goodix and
-panel-raspberrypi-touchscreen/TC358762/attiny-regulator/EDT-FT5x06 — built in on
-the Pi 4 (`linux.config`), as modules on the Pi 5 (upstream `bcm2712_defconfig`,
-autoloaded when the overlay enables the DT nodes). The app auto-detects the panel
-by resolution (`display.py` in revokyte), and `ota-health-check.sh` is
-deliberately panel-agnostic (`/dev/dri/*`, any input event device).
+and both kernels carry all three panel stacks — ILI9881C/Goodix,
+panel-raspberrypi-touchscreen/TC358762/attiny-regulator/EDT-FT5x06, and
+panel-waveshare-dsi/Goodix — built in on the Pi 4 (`linux.config`), as modules
+on the Pi 5 (upstream `bcm2712_defconfig`, autoloaded when the overlay enables
+the DT nodes). The app auto-detects the panel by resolution (`display.py` in
+revokyte; 1024x600 maps to its `waveshare_7` profile), and
+`ota-health-check.sh` is deliberately panel-agnostic (`/dev/dri/*`, any input
+event device).
 
 ### SD Card Layout (A/B OTA)
 

@@ -13,7 +13,10 @@ dtparam=spi=on
 dtoverlay=vc4-kms-v3d-pi5
 
 # Panel selection — exactly one of the dtoverlay lines below must be active.
-# Both overlays use the CAM/DISP 1 connector by default; append ,dsi0 for CAM/DISP 0.
+# All overlays use the CAM/DISP 1 connector by default; ,dsi0 switches to
+# CAM/DISP 0. For the Waveshare 7" (C) put ,dsi0 BEFORE ,i2c1 — overlay
+# parameters apply in order and both retarget the control I2C bus, so ,i2c1
+# must come last (e.g. ...,7_0_inchC,dsi0,i2c1).
 # Raspberry Pi Touch Display 2 (720x1280 ILI9881 DSI panel + Goodix GT911 touch,
 # mounted portrait in landscape -> rotate 270, swap x/y; default). The GT911
 # fails its boot probe (-121); goodix-rebind.service in the rootfs overlay
@@ -21,5 +24,9 @@ dtoverlay=vc4-kms-v3d-pi5
 dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy
 # Waveshare 5inch DSI LCD, 800x480 (SKU WAV-18396):
 #dtoverlay=vc4-kms-dsi-7inch
+# Waveshare 7inch DSI LCD (C), 1024x600: panel control + touch arrive over the
+# separate 4-pin cable wired to 5V and the I2C1 pins (GPIO 2/3), not the DSI
+# ribbon — hence the i2c1 parameter.
+#dtoverlay=vc4-kms-dsi-waveshare-panel,7_0_inchC,i2c1
 
 gpu_mem=256

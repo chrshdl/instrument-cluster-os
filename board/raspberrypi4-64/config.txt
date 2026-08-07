@@ -14,5 +14,9 @@ dtoverlay=vc4-kms-v3d
 #dtoverlay=vc4-kms-dsi-ili9881-7inch,rotation=270,swapxy
 # Waveshare 5inch DSI LCD, 800x480 (SKU WAV-18396, default):
 dtoverlay=vc4-kms-dsi-7inch
+# Waveshare 7inch DSI LCD (C), 1024x600: panel control + touch arrive over the
+# separate 4-pin cable wired to 5V and the I2C1 pins (GPIO 2/3), not the DSI
+# ribbon — hence the i2c1 parameter.
+#dtoverlay=vc4-kms-dsi-waveshare-panel,7_0_inchC,i2c1
 
 gpu_mem=256
