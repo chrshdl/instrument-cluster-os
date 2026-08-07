@@ -5,6 +5,15 @@ Wants=network.target
 Requires=data.mount
 After=network.target data.mount
 
+# The proxy.path unit misfires once during first boot on a fresh image: the
+# watched chain (/opt/telemetry -> /data/opt/telemetry) comes into existence
+# when prepare-data-dirs runs, and that event starts this service even though
+# no feed (and thus no proxy-wrapper.py) is installed — which then crash-loops
+# on Restart=on-failure every 5 s forever. Gate on the wrapper itself: a
+# skipped condition is not a failure (no restart loop, no log spam), and the
+# path unit still starts us the moment the installer creates the file.
+ConditionPathExists=/opt/telemetry/active/proxy-wrapper.py
+
 [Service]
 Type=simple
 # Stable base dir (always present via the /opt/telemetry symlink), so systemd
