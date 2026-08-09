@@ -12,6 +12,17 @@ Name=wlan0
 DHCP=ipv4
 IPv6AcceptRA=no
 LinkLocalAddressing=no
+# Make resolved answer mDNS for <hostname>.local on this link. Without
+# this line the device advertises NO name at all: resolved is built with
+# mDNS on globally, but networkd defaults every managed link to MDNS=no
+# and resolved clamps to MIN(link, global) — the working
+# instrument-cluster.local on the dev LAN turned out to be the router
+# (a Fritz!Box) answering for its DHCP clients, which most routers do
+# not do. The ACC agent's output_mdns sink, the documented ssh workflow,
+# and the telemetry protocol's addressing convention (revokyte
+# docs/PROTOCOL.md §2.5) all assume the name follows the device across
+# DHCP lease changes, so the image must guarantee it itself.
+MulticastDNS=yes
 
 [DHCPv4]
 # Identify by MAC rather than by the default DUID, which is derived from
