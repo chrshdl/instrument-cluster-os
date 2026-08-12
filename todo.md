@@ -16,8 +16,8 @@ build time the same way `@BOARD_COMPATIBLE@` is (see
 ### Where `country=DE` / `"DE"` lives today
 - [ ] `board/raspberrypi/rootfs_overlay/etc/systemd/system/prepare-data-dirs.service`
       — the first-boot **seed** (`printf "...country=DE\n"`). Shared by RPi4 + RPi5.
-- [ ] `board/raspberrypi4-64/wpa_supplicant-wlan0.conf`
-- [ ] `board/raspberrypi5/wpa_supplicant-wlan0.conf`
+- [x] ~~`board/raspberrypi4-64/wpa_supplicant-wlan0.conf`~~ (removed — boot-partition provisioning dropped)
+- [x] ~~`board/raspberrypi5/wpa_supplicant-wlan0.conf`~~ (removed — boot-partition provisioning dropped)
 - [ ] App repo `instrument-cluster`: `core/wifi_manager.py` → `DEFAULT_COUNTRY = "DE"`
       (used when the app **rewrites** the config on join).
 

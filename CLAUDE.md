@@ -157,7 +157,6 @@ mmcblk0p4  /data    ext4  512M   Persistent data (Wi-Fi config, RAUC status, log
 | `instrument-cluster-proxy.service` | Feed-agnostic telemetry proxy: runs whichever feed the user installed (granturismo for GT7, acc for ACC), republishing on `127.0.0.1:5600` |
 | `instrument-cluster-proxy.path` | Starts the proxy once a feed is installed (`/opt/telemetry/active/proxy-wrapper.py` appears; `active` is a symlink the installer points at the selected feed) |
 | `instrument-cluster-health.service` | Verifies display/GPU/Wi-Fi/touch (`ota-health-check.sh`), then `rauc status mark-good` |
-| `wifi-setup.service` | One-time: copies `wpa_supplicant-wlan0.conf` from `/boot` to `/etc/wpa_supplicant/` on first boot |
 | `splashscreen.service` | Shows `etc/splash.png` via `fbv` during boot |
 | `prepare-data-dirs.service` | Creates expected dirs on `/data` partition before other services start |
 | `goodix-rebind.service` | Rebinds the GT911 touch driver after the DSI panel is up (boot probe race) |
@@ -178,7 +177,7 @@ exact regression happened with `goodix-rebind`. Mesa's shader cache lives on
 because the rootfs is read-only. Per-board bootloader EEPROM settings (boot
 order, UART) are provisioned separately — see `docs/EEPROM_PROVISIONING.md`.
 
-Wi-Fi credentials are provisioned by placing a pre-filled `wpa_supplicant-wlan0.conf` on the boot FAT partition. `install-wifi-config.sh` moves it to `/etc/wpa_supplicant/` and renames the source so it only runs once.
+Wi-Fi credentials are provisioned exclusively through the app's on-screen setup (first boot with no credentials pushes the Wi-Fi setup state). The former boot-partition template path (`wpa_supplicant-wlan0.conf` on FAT + `wifi-setup.service`/`install-wifi-config.sh`) was removed deliberately: FAT has no file permissions, so a hand-filled template left the plaintext PSK world-readable on `/boot`. The app's `has_credentials()` placeholder guard (`YOUR_WIFI_SSID`) stays in the app to heal devices flashed before the removal.
 
 ### Telemetry Data Flow
 

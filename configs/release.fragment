@@ -3,6 +3,15 @@
 # assignment wins). Dev builds — local, PR, workflow_dispatch — never get
 # this. CI verifies the merge before building and re-verifies the built
 # rootfs via scripts/assert-release-image.sh.
+#
+# Not everything release-only is expressible as Kconfig: the board post-build
+# and post-image scripts detect this variant (OpenSSH absent from BR2_CONFIG)
+# and additionally mask the getty templates, drop the serial console from
+# cmdline.txt, set enable_uart=0, and regenerate the U-Boot env with
+# bootdelay=-2 + stdin without serial (non-interruptible autoboot).
+# assert-release-image.sh checks all of it when given the images dir.
+# Per-device EEPROM hardening (BOOT_UART=0) is a provisioning step, not an
+# image property — see docs/EEPROM_PROVISIONING.md.
 
 # No remote shell in shipped images.
 # BR2_PACKAGE_OPENSSH is not set

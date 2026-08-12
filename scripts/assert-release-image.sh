@@ -5,12 +5,16 @@
 # sdcard.img — not just the build config, so a forgotten or broken
 # configs/release.fragment can never silently ship an open image.
 #
-# Usage: scripts/assert-release-image.sh <path/to/.config> <path/to/rootfs.ext4>
+# Usage: scripts/assert-release-image.sh <path/to/.config> <path/to/rootfs.ext4> [<images-dir>]
+# With <images-dir> (output/images) it additionally asserts the hardened boot
+# artifacts: no serial console in cmdline.txt, UART off in config.txt, and a
+# non-interruptible U-Boot env (bootdelay=-2, no serial stdin).
 # Requires: debugfs (e2fsprogs). No root needed.
 set -eu
 
-CONFIG="${1:?usage: assert-release-image.sh <.config> <rootfs.ext4>}"
-ROOTFS="${2:?usage: assert-release-image.sh <.config> <rootfs.ext4>}"
+CONFIG="${1:?usage: assert-release-image.sh <.config> <rootfs.ext4> [<images-dir>]}"
+ROOTFS="${2:?usage: assert-release-image.sh <.config> <rootfs.ext4> [<images-dir>]}"
+IMAGES_DIR="${3:-}"
 
 fail() { echo "RELEASE ASSERTION FAILED: $*" >&2; exit 1; }
 
@@ -63,5 +67,43 @@ if ! debugfs -R "cat etc/systemd/system/prepare-data-dirs.service" "$ROOTFS" 2>/
     fail "nothing provisions the machine id in $ROOTFS (prepare-data-dirs.service)"
 fi
 
+# No local login prompt: the getty templates must be masked (symlink to
+# /dev/null), so systemd's getty-generator cannot spawn a login shell on the
+# serial console even if a console= parameter reappeared in the cmdline.
+for unit in serial-getty@.service console-getty.service getty@.service; do
+    fs_has "etc/systemd/system/$unit" \
+        || fail "etc/systemd/system/$unit missing — getty template not masked"
+    debugfs -R "stat etc/systemd/system/$unit" "$ROOTFS" 2>/dev/null \
+        | grep -q "/dev/null" \
+        || fail "etc/systemd/system/$unit is not a mask (symlink to /dev/null)"
+done
+
+# Boot-artifact assertions (only when the images dir is provided).
+if [ -n "$IMAGES_DIR" ]; then
+    CMDLINE="$IMAGES_DIR/rpi-firmware/cmdline.txt"
+    CONFTXT="$IMAGES_DIR/rpi-firmware/config.txt"
+    UBOOTENV="$IMAGES_DIR/uboot-env.bin"
+    [ -f "$CMDLINE" ]  || fail "not found: $CMDLINE"
+    [ -f "$CONFTXT" ]  || fail "not found: $CONFTXT"
+    [ -f "$UBOOTENV" ] || fail "not found: $UBOOTENV"
+
+    # No serial console for the kernel/getty.
+    if grep -q "console=ttyAMA" "$CMDLINE"; then
+        fail "serial console still present in cmdline.txt"
+    fi
+    # UART must not be brought up by the firmware.
+    if grep -q "^enable_uart=1" "$CONFTXT"; then
+        fail "enable_uart=1 still present in config.txt"
+    fi
+    # U-Boot must autoboot without an abort check and without serial stdin.
+    # The env image is NUL-separated text, so grep -a works on it.
+    grep -a -q -e "bootdelay=-2" "$UBOOTENV" \
+        || fail "uboot-env.bin does not contain bootdelay=-2"
+    if grep -a -q -e "stdin=serial" "$UBOOTENV"; then
+        fail "uboot-env.bin still lists serial as stdin"
+    fi
+fi
+
 echo "OK: release image assertions passed (no sshd, no sshd_config, root locked,
-     machine id provisioned)."
+     machine id provisioned, getty masked${IMAGES_DIR:+, serial console off,
+     U-Boot non-interruptible})."

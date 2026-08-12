@@ -13,7 +13,9 @@ and name-advertising facts.
   (`80-wlan0.network` in the rootfs overlay), DHCPv4 only (IPv6 deliberately
   off — see the comments in that file), client identity by MAC so the router
   sees a stable device across reflashes. Credentials come from
-  `wpa_supplicant-wlan0.conf` (boot-partition provisioning or on-screen setup).
+  `wpa_supplicant-wlan0.conf` on `/data`, written exclusively by the app's
+  on-screen setup (the boot-partition provisioning path was removed — plaintext
+  PSK on FAT).
 - **Ethernet (known gap):** Buildroot generates a DHCP config for `eth0`
   (`BR2_SYSTEM_DHCP="eth0"`), but the Pi's onboard NIC is named **`end0`** by
   the kernel, so that file matches nothing and the Ethernet port is

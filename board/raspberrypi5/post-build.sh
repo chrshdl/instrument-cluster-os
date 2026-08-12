@@ -57,11 +57,7 @@ mkdir -p \
   "$T/etc/systemd/system/multi-user.target.wants" \
   "$T/etc/systemd/system/getty.target.wants"
 
-# Make sure the Wi-Fi and mount-overlay installers are executable
-if [ -e "$T/usr/local/bin/install-wifi-config.sh" ]; then
-  chmod 0755 "$T/usr/local/bin/install-wifi-config.sh"
-fi
-
+# Make sure the mount-overlay installer is executable
 if [ -e "$T/usr/local/bin/mount-overlay.sh" ]; then
   chmod 0755 "$T/usr/local/bin/mount-overlay.sh"
 fi
@@ -95,4 +91,16 @@ rm -f "$T/etc/systemd/system/multi-user.target.wants/wpa_supplicant.service" 2>/
 if ! grep -q "^BR2_PACKAGE_OPENSSH=y" "$BR2_CONFIG"; then
     rm -rf "$T/etc/ssh" "$T/etc/systemd/system/sshd.service.d"
     echo "POST-BUILD: OpenSSH not in config — removed SSH overlay leftovers"
+
+    # No local login prompt in shipped images: mask the getty templates so
+    # systemd's getty-generator cannot spawn a login shell on the serial
+    # console (or any console). Root is locked in release, but the prompt
+    # itself is still attack surface; post-image.sh additionally drops the
+    # serial console from cmdline.txt and disables UART/U-Boot interruption.
+    # CI's assert-release-image.sh verifies the masking on the built rootfs.
+    ln -snf /dev/null "$T/etc/systemd/system/serial-getty@.service"
+    ln -snf /dev/null "$T/etc/systemd/system/console-getty.service"
+    ln -snf /dev/null "$T/etc/systemd/system/getty@.service"
+    rm -f "$T/etc/systemd/system/getty.target.wants/"*getty* 2>/dev/null || true
+    echo "POST-BUILD: release — masked getty templates (no local login prompt)"
 fi

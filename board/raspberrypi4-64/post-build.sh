@@ -75,7 +75,7 @@ mkdir -p \
   "$T/etc/systemd/system/getty.target.wants"
 
 # Make installers executable if they exist
-for script in "install-wifi-config.sh" "mount-overlay.sh"; do
+for script in "mount-overlay.sh"; do
     if [ -e "$T/usr/local/bin/$script" ]; then
         chmod 0755 "$T/usr/local/bin/$script"
     fi
@@ -125,6 +125,18 @@ fi
 if ! grep -q "^BR2_PACKAGE_OPENSSH=y" "$BR2_CONFIG"; then
     rm -rf "$T/etc/ssh" "$T/etc/systemd/system/sshd.service.d"
     echo "POST-BUILD: OpenSSH not in config — removed SSH overlay leftovers"
+
+    # No local login prompt in shipped images: mask the getty templates so
+    # systemd's getty-generator cannot spawn a login shell on the serial
+    # console (or any console). Root is locked in release, but the prompt
+    # itself is still attack surface; post-image.sh additionally drops the
+    # serial console from cmdline.txt and disables UART/U-Boot interruption.
+    # CI's assert-release-image.sh verifies the masking on the built rootfs.
+    ln -snf /dev/null "$T/etc/systemd/system/serial-getty@.service"
+    ln -snf /dev/null "$T/etc/systemd/system/console-getty.service"
+    ln -snf /dev/null "$T/etc/systemd/system/getty@.service"
+    rm -f "$T/etc/systemd/system/getty.target.wants/"*getty* 2>/dev/null || true
+    echo "POST-BUILD: release — masked getty templates (no local login prompt)"
 fi
 
 exit 0
