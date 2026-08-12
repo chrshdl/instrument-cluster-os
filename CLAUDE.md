@@ -160,6 +160,7 @@ mmcblk0p4  /data    ext4  512M   Persistent data (Wi-Fi config, RAUC status, log
 | `splashscreen.service` | Shows `etc/splash.png` via `fbv` during boot |
 | `prepare-data-dirs.service` | Creates expected dirs on `/data` partition before other services start |
 | `goodix-rebind.service` | Rebinds the GT911 touch driver after the DSI panel is up (boot probe race) |
+| `boot-writable-for-debug.service` | Remounts `/boot` rw **only** when the debug marker file is present (see the storage note below) |
 
 **Boot-time ordering (deliberate, fragile):** `instrument-cluster.service`,
 `splashscreen.service` and `goodix-rebind.service` all run with
@@ -176,6 +177,20 @@ exact regression happened with `goodix-rebind`. Mesa's shader cache lives on
 `/data` (`instrument-cluster.service.d/shader-cache.conf` in the overlay)
 because the rootfs is read-only. Per-board bootloader EEPROM settings (boot
 order, UART) are provisioned separately — see `docs/EEPROM_PROVISIONING.md`.
+
+**Storage / power-loss hardening.** The appliance has no shutdown — users pull
+the plug — so the partitions are mounted defensively: the rootfs is read-only
+(and A/B slots keep an interrupted OTA harmless), `/data` is `rw,noatime` ext4
+written only through atomic replace (temp file + `fsync` + `rename` in the
+app's config writer), and **`/boot` is mounted `ro`**. FAT has no journal, which
+leaves the boot partition as the one spot a yanked cable could still corrupt —
+and nothing writes there in normal operation. The single exception is the
+support debug log: `boot-writable-for-debug.service` remounts `/boot` rw when
+`/boot/instrument-cluster-debug` exists. Editing `config.txt` (e.g. to switch
+DSI panels) is unaffected — that is done with the card in a PC, which a sealed
+product requires anyway. What no mount option can protect against is the card's
+own FTL scrambling its mapping tables mid-write; that is why the product ships
+an industrial/pSLC card with power-loss protection rather than a consumer one.
 
 Wi-Fi credentials are provisioned exclusively through the app's on-screen setup (first boot with no credentials pushes the Wi-Fi setup state). The former boot-partition template path (`wpa_supplicant-wlan0.conf` on FAT + `wifi-setup.service`/`install-wifi-config.sh`) was removed deliberately: FAT has no file permissions, so a hand-filled template left the plaintext PSK world-readable on `/boot`. The app's `has_credentials()` placeholder guard (`YOUR_WIFI_SSID`) stays in the app to heal devices flashed before the removal.
 
