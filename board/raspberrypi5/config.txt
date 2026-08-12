@@ -9,6 +9,12 @@ kernel=u-boot.bin
 dtparam=i2c_arm=on
 dtparam=spi=on
 
+# Bluetooth is not a product feature: disable the controller at the device
+# tree level so the hci_uart module never binds. The image additionally
+# ships no BT firmware and no bluez userspace (defconfig), but this line is
+# the assessable off-switch for the RED radio assessment.
+dtoverlay=disable-bt
+
 # Enable KMS graphics for modern displays
 dtoverlay=vc4-kms-v3d-pi5
 
