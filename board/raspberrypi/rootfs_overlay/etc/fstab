@@ -1,2 +1,2 @@
-/dev/mmcblk0p1  /boot  vfat  defaults  0  0
-/dev/mmcblk0p4  /data  ext4  rw,nofail  0  0
+/dev/mmcblk0p1  /boot  vfat  ro                 0  0
+/dev/mmcblk0p4  /data  ext4  rw,noatime,nofail  0  0
