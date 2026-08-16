@@ -23,7 +23,7 @@ We build the whole operating system around that one job, and nothing else:
 
 ## What
 
-The result is this repo: the Buildroot-based OS image for [Revokyte](https://www.revokyte.com), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. Flash it to an SD card and the device boots into the cluster — no manual setup or dependency installation required. See the [Revokyte README](https://github.com/chrshdl/revokyte) for features, architecture, and hardware details.
+The result is this repo: the Buildroot-based OS image for [Revokyte](https://www.revokyte.com), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. Flash it to an SD card and the device boots into the cluster — no manual setup or dependency installation required. See the [Revokyte README](https://github.com/revokyte/revokyte) for features, architecture, and hardware details.
 
 ## Getting started
 

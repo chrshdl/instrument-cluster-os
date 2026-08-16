@@ -8,7 +8,7 @@
 # generated archives are not byte-stable and have broken the sha256 pin
 # before when GitHub changed compression.
 PYTHON_INSTRUMENT_CLUSTER_VERSION = 0.2.34
-PYTHON_INSTRUMENT_CLUSTER_SITE = https://github.com/chrshdl/revokyte/releases/download/v$(PYTHON_INSTRUMENT_CLUSTER_VERSION)
+PYTHON_INSTRUMENT_CLUSTER_SITE = https://github.com/revokyte/revokyte/releases/download/v$(PYTHON_INSTRUMENT_CLUSTER_VERSION)
 
 PYTHON_INSTRUMENT_CLUSTER_LICENSE = GPL-3.0-or-later
 PYTHON_INSTRUMENT_CLUSTER_LICENSE_FILES = LICENSE

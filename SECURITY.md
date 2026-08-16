@@ -14,7 +14,7 @@ ship a fix before publishing details, and we will credit you in the
 release notes unless you prefer otherwise.
 
 Vulnerabilities in the Revokyte app itself
-([chrshdl/revokyte](https://github.com/chrshdl/revokyte)) can be
+([revokyte/revokyte](https://github.com/revokyte/revokyte)) can be
 reported through the same channels. For vulnerabilities in upstream
 packages that the image merely bundles, reporting upstream is usually
 more effective, but if you are unsure whether this image is affected,

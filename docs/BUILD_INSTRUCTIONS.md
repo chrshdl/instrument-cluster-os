@@ -16,7 +16,7 @@ It assumes **no prior knowledge** of how the pieces fit together.
 |------|------------|---------------------------|
 | [`granturismo`](https://github.com/chrshdl/granturismo) | GT7 telemetry feed (decrypts the PlayStation UDP stream) | **Not in the image.** The app downloads it **at runtime on the device** and always installs the **latest** published GitHub Release — there is no pinned version. |
 | [`assettocorsa`](https://github.com/chrshdl/assettocorsa) | ACC telemetry feed (reads ACC's UDP Broadcasting API) | **Not in the image.** Same as granturismo — the app downloads the **latest** Release **at runtime on the device** when the user selects ACC. No pinned version. |
-| [`revokyte`](https://github.com/chrshdl/revokyte) | The application (the UI you see on screen) | Built **from source at image-build time**, baked into the image. |
+| [`revokyte`](https://github.com/revokyte/revokyte) | The application (the UI you see on screen) | Built **from source at image-build time**, baked into the image. |
 | [`instrument-cluster-os`](https://github.com/chrshdl/instrument-cluster-os) | The Buildroot project (**this repo**) that assembles everything into a Pi image | This is what you build. |
 
 ### Dependency direction
