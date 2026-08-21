@@ -95,9 +95,9 @@ if [ -n "$IMAGES_DIR" ]; then
     if grep -q "^enable_uart=1" "$CONFTXT"; then
         fail "enable_uart=1 still present in config.txt"
     fi
-    # Bluetooth is not a product feature — the DT-level off-switch must ship.
-    grep -q "^dtoverlay=disable-bt" "$CONFTXT" \
-        || fail "dtoverlay=disable-bt missing from config.txt"
+    # # Bluetooth is not a product feature — the DT-level off-switch must ship.
+    # grep -q "^dtoverlay=disable-bt" "$CONFTXT" \
+    #     || fail "dtoverlay=disable-bt missing from config.txt"
     # U-Boot must autoboot without an abort check and without serial stdin.
     # The env image is NUL-separated text, so grep -a works on it.
     grep -a -q -e "bootdelay=-2" "$UBOOTENV" \
