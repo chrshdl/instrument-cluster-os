@@ -3,8 +3,8 @@
 # instrument-cluster-os
 
 [![Website](https://img.shields.io/badge/website-revokyte.com-3dd1d8)](https://www.revokyte.com)
-[![Build Status](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml/badge.svg)](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml)
-[![Download Raspberry Pi Image](https://img.shields.io/badge/download-pi4--64%20%C2%B7%20pi5-c51d4a?logo=raspberry-pi&logoColor=white)](https://github.com/chrshdl/instrument-cluster-os/releases)
+[![Build Status](https://github.com/revokyte/instrument-cluster-os/actions/workflows/ci.yml/badge.svg)](https://github.com/revokyte/instrument-cluster-os/actions/workflows/ci.yml)
+[![Download Raspberry Pi Image](https://img.shields.io/badge/download-pi4--64%20%C2%B7%20pi5-c51d4a?logo=raspberry-pi&logoColor=white)](https://github.com/revokyte/instrument-cluster-os/releases)
 [![Discord](https://img.shields.io/discord/1452332495683981478?label=chat&logo=discord&color=5865F2)](https://discord.gg/dEQJSuva7K)
 
 </div>
@@ -23,13 +23,13 @@ We build the whole operating system around that one job, and nothing else:
 
 ## What
 
-The result is this repo: the Buildroot-based OS image for [Revokyte](https://www.revokyte.com), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. Flash it to an SD card and the device boots into the cluster — no manual setup or dependency installation required. See the [Revokyte README](https://github.com/chrshdl/revokyte) for features, architecture, and hardware details.
+The result is this repo: the Buildroot-based OS image for [Revokyte](https://www.revokyte.com), an embedded sim racing instrument cluster for Gran Turismo 7 and Assetto Corsa Competizione. Flash it to an SD card and the device boots into the cluster — no manual setup or dependency installation required. See the [Revokyte README](https://github.com/revokyte/revokyte) for features, architecture, and hardware details.
 
 ## Getting started
 
-Download the image for your board (Raspberry Pi 4 or 5) from the [releases](https://github.com/chrshdl/instrument-cluster-os/releases) and flash it to an SD card (e.g. with Raspberry Pi Imager). On first boot the cluster opens an on-screen Wi-Fi setup (scan, pick a network, type the password on the touch keyboard) — that is the only provisioning path. The former boot-partition template (`wpa_supplicant-wlan0.conf` filled in by hand) has been removed: it left the Wi-Fi password in plain text on the FAT partition, which no file permissions can protect. Credentials entered on-screen are stored hashed (PBKDF2) with mode 0600 on the persistent data partition.
+Download the image for your board (Raspberry Pi 4 or 5) from the [releases](https://github.com/revokyte/instrument-cluster-os/releases) and flash it to an SD card (e.g. with Raspberry Pi Imager). On first boot the cluster opens an on-screen Wi-Fi setup (scan, pick a network, type the password on the touch keyboard) — that is the only provisioning path. The former boot-partition template (`wpa_supplicant-wlan0.conf` filled in by hand) has been removed: it left the Wi-Fi password in plain text on the FAT partition, which no file permissions can protect. Credentials entered on-screen are stored hashed (PBKDF2) with mode 0600 on the persistent data partition.
 
-Released images are locked down: no SSH server and no interactive root login. If you want to hack on the device, use a dev image instead — download a `dev-*.img` artifact from a [CI workflow run](https://github.com/chrshdl/instrument-cluster-os/actions/workflows/ci.yml) or build one locally (dev is the default build variant) — which has SSH enabled with user `root`, password `root`.
+Released images are locked down: no SSH server and no interactive root login. If you want to hack on the device, use a dev image instead — download a `dev-*.img` artifact from a [CI workflow run](https://github.com/revokyte/instrument-cluster-os/actions/workflows/ci.yml) or build one locally (dev is the default build variant) — which has SSH enabled with user `root`, password `root`.
 
 ## Legal
 

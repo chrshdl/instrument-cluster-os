@@ -163,14 +163,14 @@ jobs:
   # half-populated release.
   #
   # Previously targeted chrshdl.github.io/deploy.yml. That repo is gone
-  # -- the site is built from chrshdl/revokyte-site and published to
-  # chrshdl/revokyte-www -- so this job had been pointing at nothing
+  # -- the site is built from revokyte/revokyte-site and published to
+  # revokyte/revokyte-www -- so this job had been pointing at nothing
   # since the move. The site also had a daily cron as a backstop; that
   # is gone too, which makes this job the only thing keeping those pages
   # current.
   #
   # SITE_DEPLOY_PAT: fine-grained PAT with Actions read/write on
-  # chrshdl/revokyte-site (the workflow token cannot dispatch across
+  # revokyte/revokyte-site (the workflow token cannot dispatch across
   # repos). Actions rather than Contents: this only has to start a
   # workflow there, never push to it.
   notify-site:
@@ -188,5 +188,5 @@ jobs:
         # Actions: write.
         run: |
           gh api -X POST \
-            repos/chrshdl/revokyte-site/actions/workflows/publish.yml/dispatches \
+            repos/revokyte/revokyte-site/actions/workflows/publish.yml/dispatches \
             -f ref=main

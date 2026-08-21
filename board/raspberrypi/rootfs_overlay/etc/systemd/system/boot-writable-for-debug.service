@@ -1,0 +1,33 @@
+[Unit]
+# /boot is mounted read-only (see /etc/fstab): FAT has no journal, and the
+# appliance is powered off by pulling the plug — an interrupted write to the
+# boot partition is the one failure mode the read-only rootfs and the A/B
+# slots do NOT cover. Nothing writes there in normal operation.
+#
+# The single exception is the support debug log: dropping the marker file
+# /boot/instrument-cluster-debug onto the card (from a PC — the appliance has
+# no shell) makes the app write a rotating log next to it, which the user can
+# then read on any machine because the partition is FAT. That flow needs the
+# partition writable, so this unit remounts it — but only when the marker is
+# actually present.
+Description=Remount /boot read-write while the debug marker is present
+# Must be ordered before the cluster app, which configures its logger at
+# startup. The app itself runs with DefaultDependencies=no and starts before
+# local-fs.target, so this unit has to do the same — otherwise its implicit
+# After=basic.target would re-serialize the app behind the mounts (see the
+# boot-ordering note in CLAUDE.md).
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target
+Requires=boot.mount
+After=boot.mount
+Before=instrument-cluster.service
+ConditionPathExists=/boot/instrument-cluster-debug
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/mount -o remount,rw /boot
+
+[Install]
+WantedBy=sysinit.target
