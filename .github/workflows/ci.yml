@@ -97,23 +97,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         run: ./scripts/assert-release-image.sh output/.config output/images/rootfs.ext4 output/images
 
-      # No update bundles here: this repo ships the community image, which
-      # has no OTA — devices update by re-flashing the factory image. The
-      # signed .raucb production (and the signing secrets) live in the
-      # private Pro OS repo, which layers on this tree.
-      #
       # Tag builds ship as factory-<tag>-<board>.img.gz (release asset,
-      # gzipped below). Everything else is a dev image — unmistakably
-      # named, uploaded only as a workflow artifact, and left uncompressed.
-      #
-      # The private Pro OS repo builds its own separate factory image (own
-      # CI, own RAUC signing) rather than downloading this repo's release
-      # asset, so this naming isn't a runtime cross-repo dependency. It
-      # gets picked up there automatically on the next `git fetch upstream
-      # && merge` (it forks this repo) -- except scripts/build-release-image.sh
-      # over there, which is Pro-OS-only and hand-ported from this file, so
-      # it needs a matching manual edit whenever this naming changes.
-      # ref_name can contain '/' on PRs (e.g. "123/merge"); sanitize it.
+      # gzipped below).
       - name: Name image
         run: |
           REF="${GITHUB_REF_NAME//\//-}"
@@ -189,18 +174,6 @@ jobs:
   # tag. `needs: build` is the point: it holds the dispatch until every
   # board has attached its legal-info archive, so the site never reads a
   # half-populated release.
-  #
-  # Previously targeted chrshdl.github.io/deploy.yml. That repo is gone
-  # -- the site is built from revokyte/revokyte-site and published to
-  # revokyte/revokyte-www -- so this job had been pointing at nothing
-  # since the move. The site also had a daily cron as a backstop; that
-  # is gone too, which makes this job the only thing keeping those pages
-  # current.
-  #
-  # SITE_DEPLOY_PAT: fine-grained PAT with Actions read/write on
-  # revokyte/revokyte-site (the workflow token cannot dispatch across
-  # repos). Actions rather than Contents: this only has to start a
-  # workflow there, never push to it.
   notify-site:
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
@@ -209,11 +182,6 @@ jobs:
       - name: Rebuild revokyte-site (licence pages)
         env:
           GH_TOKEN: ${{ secrets.SITE_DEPLOY_PAT }}
-        # REST, not `gh workflow run`: that resolves the default branch
-        # over GraphQL, which fine-grained PATs cannot read
-        # (repository.defaultBranchRef -> "Resource not accessible").
-        # This endpoint takes the ref explicitly and needs only
-        # Actions: write.
         run: |
           gh api -X POST \
             repos/revokyte/revokyte-site/actions/workflows/publish.yml/dispatches \
