@@ -102,9 +102,17 @@ jobs:
       # signed .raucb production (and the signing secrets) live in the
       # private Pro OS repo, which layers on this tree.
       #
-      # Tag builds ship as factory-<tag>-<board>.img (release asset; the name
-      # is load-bearing for the Pro OS repo and README). Everything else is a
-      # dev image — unmistakably named, uploaded only as a workflow artifact.
+      # Tag builds ship as factory-<tag>-<board>.img.gz (release asset,
+      # gzipped below). Everything else is a dev image — unmistakably
+      # named, uploaded only as a workflow artifact, and left uncompressed.
+      #
+      # The private Pro OS repo builds its own separate factory image (own
+      # CI, own RAUC signing) rather than downloading this repo's release
+      # asset, so this naming isn't a runtime cross-repo dependency. It
+      # gets picked up there automatically on the next `git fetch upstream
+      # && merge` (it forks this repo) -- except scripts/build-release-image.sh
+      # over there, which is Pro-OS-only and hand-ported from this file, so
+      # it needs a matching manual edit whenever this naming changes.
       # ref_name can contain '/' on PRs (e.g. "123/merge"); sanitize it.
       - name: Name image
         run: |
@@ -117,6 +125,20 @@ jobs:
           mv "output/images/sdcard.img" "output/images/${IMG}"
           echo "IMG=${IMG}" >> "$GITHUB_ENV"
 
+      # Tag builds only: the sdcard.img is mostly sparse free space (FAT +
+      # ext4 headroom), so it gzips down substantially. Compresses in place
+      # (no -k — the runner is already disk-constrained, see "Free disk
+      # space" above). Raspberry Pi Imager and balenaEtcher both flash
+      # .img.gz directly, no manual decompression needed.
+      - name: Compress factory image
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          cd output/images
+          gzip -9 "${IMG}"
+          IMG="${IMG}.gz"
+          sha256sum "${IMG}" > "${IMG}.sha256"
+          echo "IMG=${IMG}" >> "$GITHUB_ENV"
+
       - name: Upload dev image as workflow artifact
         if: "!startsWith(github.ref, 'refs/tags/')"
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -124,6 +146,10 @@ jobs:
           name: ${{ env.IMG }}
           path: output/images/${{ env.IMG }}
           retention-days: 14
+          # sdcard.img is mostly sparse free space, same as the release
+          # path's gzip -9 below — max out the zip this action builds
+          # internally rather than leaving it at the default (6).
+          compression-level: 9
 
       # The published images aggregate GPL/LGPL components (kernel, U-Boot,
       # BusyBox, glibc, the app, ...) whose licenses require making the
@@ -147,7 +173,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
-          files: output/images/factory-${{ github.ref_name }}-${{ matrix.board }}.img
+          files: |
+            output/images/${{ env.IMG }}
+            output/images/${{ env.IMG }}.sha256
 
       - name: Upload Legal Info to Release
         if: startsWith(github.ref, 'refs/tags/')
