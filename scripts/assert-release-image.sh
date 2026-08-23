@@ -55,6 +55,22 @@ for p in usr/bin/wget bin/wget; do
     fi
 done
 
+# Bluetooth is not a product feature and the off-switch is the kernel, not a
+# device-tree overlay: with CONFIG_BT unset there is no bluetooth module tree
+# at all. Asserted on the built rootfs because the config.txt check this
+# replaces was commented out once and the radio driver then shipped unnoticed.
+# (The overlay is deliberately NOT used — it broke boot on a Pi 4 Rev 1.5; see
+# board/raspberrypi4-64/config.txt.)
+kver="$(debugfs -R "ls lib/modules" "$ROOTFS" 2>/dev/null \
+    | tr -c 'A-Za-z0-9._-' '\n' | grep -E '^[0-9]+\.[0-9]+' | head -1)"
+if [ -n "$kver" ]; then
+    for d in "lib/modules/$kver/kernel/net/bluetooth" "lib/modules/$kver/kernel/drivers/bluetooth"; do
+        if fs_has "$d"; then
+            fail "$d present in $ROOTFS — Bluetooth stack was not removed from the kernel"
+        fi
+    done
+fi
+
 # Root must be locked: shadow password field is '*' or starts with '!'.
 # An empty field (passwordless login) or any hash fails this check.
 shadow_root="$(debugfs -R "cat etc/shadow" "$ROOTFS" 2>/dev/null | grep "^root:")" \
@@ -105,9 +121,6 @@ if [ -n "$IMAGES_DIR" ]; then
     if grep -q "^enable_uart=1" "$CONFTXT"; then
         fail "enable_uart=1 still present in config.txt"
     fi
-    # # Bluetooth is not a product feature — the DT-level off-switch must ship.
-    # grep -q "^dtoverlay=disable-bt" "$CONFTXT" \
-    #     || fail "dtoverlay=disable-bt missing from config.txt"
     # U-Boot must autoboot without an abort check and without serial stdin.
     # The env image is NUL-separated text, so grep -a works on it.
     grep -a -q -e "bootdelay=-2" "$UBOOTENV" \
@@ -117,6 +130,6 @@ if [ -n "$IMAGES_DIR" ]; then
     fi
 fi
 
-echo "OK: release image assertions passed (no sshd, no sshd_config, no wget, root locked,
+echo "OK: release image assertions passed (no sshd, no sshd_config, no wget, no bluetooth, root locked,
      machine id provisioned, getty masked${IMAGES_DIR:+, serial console off,
      U-Boot non-interruptible})."

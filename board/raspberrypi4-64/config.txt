@@ -8,11 +8,14 @@ kernel=u-boot.bin
 dtparam=i2c_arm=on
 dtparam=spi=on
 
-# Bluetooth is not a product feature: disable the controller at the device
-# tree level so the hci_uart module never binds. The image additionally
-# ships no BT firmware and no bluez userspace (defconfig), but this line is
-# the assessable off-switch for the RED radio assessment.
-#dtoverlay=disable-bt
+# Bluetooth is not a product feature. The off-switch is the KERNEL, not a
+# device-tree overlay: board/raspberrypi4-64/linux.config
+# unsets CONFIG_BT, so no BT driver exists in the image and hci_uart cannot
+# bind whatever the device tree says. Together with no BT firmware
+# (BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI_WIFI installs the Wi-Fi blobs only)
+# and no bluez userspace, those are the three independent legs behind the RED
+# radio assessment. scripts/assert-release-image.sh asserts the bluetooth
+# module tree is absent from the built rootfs.
 
 dtoverlay=vc4-kms-v3d
 # -------------------

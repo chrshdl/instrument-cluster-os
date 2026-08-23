@@ -1,0 +1,17 @@
+# Bluetooth is not a product feature. Remove the stack from the kernel so the
+# radio driver simply does not exist in the shipped image — hci_uart then
+# cannot bind no matter what the device tree says.
+#
+# This is the product's ONLY Bluetooth off-switch, and it is the stronger claim
+# for the RED radio assessment: absence of a driver rather than a disabled
+# device-tree node. Do not weaken it without replacing the mechanism —
+# scripts/assert-release-image.sh asserts the bluetooth module tree is absent
+# from the built rootfs.
+#
+# The image also ships no BT firmware (BR2_PACKAGE_BRCMFMAC_SDIO_FIRMWARE_RPI_WIFI
+# installs the Wi-Fi blobs only) and no bluez userspace, so this is the third
+# of three independent legs. Mirrors board/raspberrypi4-64/linux.config.
+# CONFIG_BT is not set
+# CONFIG_BT_HCIUART is not set
+# CONFIG_BT_HCIBTUSB is not set
+# CONFIG_TI_ST is not set
