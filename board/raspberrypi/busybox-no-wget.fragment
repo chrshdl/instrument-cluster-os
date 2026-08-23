@@ -1,0 +1,13 @@
+# Release-only: drop BusyBox's wget applet from shipped images.
+#
+# Nothing on the device uses it — the app's add-on/feed installer fetches over
+# Python's urllib.request, RAUC is handed a local bundle, and no script in this
+# tree calls wget. GNU wget (GPL-3.0+) was removed from the target separately;
+# this applet is GPL-2.0 and so irrelevant to the licence audit. It is removed
+# purely to deny a sealed appliance a generic download primitive, which is a
+# standard post-exploitation convenience.
+#
+# Merged only via configs/release.fragment, so dev images keep wget for bench
+# work — the same dev/release split already used for SSH, the gettys and the
+# serial console.
+# CONFIG_WGET is not set

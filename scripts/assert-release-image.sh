@@ -45,6 +45,16 @@ if fs_has etc/ssh/sshd_config; then
     fail "etc/ssh/sshd_config present in $ROOTFS"
 fi
 
+# No generic download primitive in shipped images: release.fragment merges a
+# BusyBox config fragment that drops the wget applet. Nothing on the device
+# calls it (the app installer uses Python's urllib.request), so its presence
+# means the fragment silently did not apply.
+for p in usr/bin/wget bin/wget; do
+    if fs_has "$p"; then
+        fail "$p present in $ROOTFS — BusyBox wget applet was not dropped"
+    fi
+done
+
 # Root must be locked: shadow password field is '*' or starts with '!'.
 # An empty field (passwordless login) or any hash fails this check.
 shadow_root="$(debugfs -R "cat etc/shadow" "$ROOTFS" 2>/dev/null | grep "^root:")" \
@@ -107,6 +117,6 @@ if [ -n "$IMAGES_DIR" ]; then
     fi
 fi
 
-echo "OK: release image assertions passed (no sshd, no sshd_config, root locked,
+echo "OK: release image assertions passed (no sshd, no sshd_config, no wget, root locked,
      machine id provisioned, getty masked${IMAGES_DIR:+, serial console off,
      U-Boot non-interruptible})."

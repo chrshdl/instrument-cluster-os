@@ -19,3 +19,8 @@
 # Lock the root account (shadow entry "root:*:", no interactive login).
 # Disabling this also drops BR2_TARGET_GENERIC_ROOT_PASSWD (depends on it).
 # BR2_TARGET_ENABLE_ROOT_LOGIN is not set
+
+# Drop BusyBox's wget applet: a sealed appliance has no use for a generic
+# download primitive, and nothing on the device calls it (the app installer
+# uses Python's urllib.request). Dev images keep it for bench work.
+BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_INSTRUMENT_CLUSTER_OS_PATH)/board/raspberrypi/busybox-no-wget.fragment"
