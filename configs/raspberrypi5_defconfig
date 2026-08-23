@@ -20,12 +20,11 @@ BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
 BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="$(call github,raspberrypi,linux,21b410140c47ffab5668399f6f143c7d7b935c8b)/linux-21b410140c47ffab5668399f6f143c7d7b935c8b.tar.gz"
 BR2_LINUX_KERNEL_USE_DEFCONFIG=y
 BR2_LINUX_KERNEL_DEFCONFIG="bcm2712"
-BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="board/raspberrypi/linux-4k-page-size.fragment"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="board/raspberrypi/linux-4k-page-size.fragment $(BR2_EXTERNAL_INSTRUMENT_CLUSTER_OS_PATH)/board/raspberrypi5/linux-module-compress-gzip.fragment"
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2712-rpi-5-b broadcom/bcm2712d0-rpi-5-b broadcom/bcm2712-rpi-500"
 BR2_LINUX_KERNEL_INSTALL_TARGET=y
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
-BR2_PACKAGE_XZ=y
 BR2_PACKAGE_FBV=y
 BR2_PACKAGE_MESA3D=y
 BR2_PACKAGE_MESA3D_GALLIUM_DRIVER_V3D=y
@@ -50,7 +49,6 @@ BR2_PACKAGE_CA_CERTIFICATES=y
 BR2_PACKAGE_OPENBLAS=y
 BR2_PACKAGE_IW=y
 BR2_PACKAGE_OPENSSH=y
-BR2_PACKAGE_WGET=y
 BR2_PACKAGE_WIRELESS_REGDB=y
 BR2_PACKAGE_WPA_SUPPLICANT=y
 BR2_PACKAGE_WPA_SUPPLICANT_WEXT=y
@@ -69,7 +67,11 @@ BR2_TARGET_UBOOT_BOARD_DEFCONFIG="rpi_arm64"
 BR2_TARGET_UBOOT_CONFIG_FRAGMENT_FILES="$(BR2_EXTERNAL_INSTRUMENT_CLUSTER_OS_PATH)/board/raspberrypi5/uboot-fragment.config"
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
 BR2_PACKAGE_HOST_GENIMAGE=y
-BR2_PACKAGE_HOST_KMOD_XZ=y
+# Must match the kernel's CONFIG_MODULE_COMPRESS_* (gzip, see board/raspberrypi5/linux-module-compress-gzip.fragment).
+# Host depmod reads the built .ko files to generate modules.dep/modules.alias;
+# without the matching decompressor it fails SILENTLY and emits EMPTY ones, and
+# udev then autoloads nothing. The post-build script asserts they are populated.
+BR2_PACKAGE_HOST_KMOD_GZ=y
 BR2_PACKAGE_HOST_MTOOLS=y
 BR2_PACKAGE_HOST_RAUC=y
 BR2_PACKAGE_RAUC=y

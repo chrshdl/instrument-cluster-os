@@ -1,0 +1,14 @@
+# Compress kernel modules with gzip (zlib licence) instead of the upstream
+# bcm2712_defconfig default of xz, which drags GPL-3.0+ xz-utils onto the
+# target via BR2_PACKAGE_XZ. Mirrors the equivalent switch in
+# board/raspberrypi4-64/linux.config. Only the compressor changes, not whether
+# modules are compressed at all — gzip still shrinks .ko files substantially.
+#
+# This MUST stay in step with BR2_PACKAGE_HOST_KMOD_GZ=y in
+# configs/raspberrypi5_defconfig: host depmod reads the built .ko files to
+# generate modules.dep/modules.alias, and without the matching decompressor it
+# fails SILENTLY and emits empty tables — udev then autoloads nothing, which on
+# the Pi 5 means no RP1 I/O, no DSI panel and no touch. The post-build scripts
+# assert the tables are populated so that mismatch can never ship again.
+# CONFIG_MODULE_COMPRESS_XZ is not set
+CONFIG_MODULE_COMPRESS_GZIP=y

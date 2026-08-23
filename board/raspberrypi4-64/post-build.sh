@@ -116,6 +116,33 @@ else
 fi
 
 # ------------------------------------------------------------------------------
+# Build integrity (all variants — not release-specific)
+# ------------------------------------------------------------------------------
+# Kernel modules must actually be loadable. Buildroot's LINUX_RUN_DEPMOD
+# target-finalize hook has already run by the time post-build scripts execute,
+# so the tables below are final. depmod runs on the HOST and needs a
+# decompressor matching the kernel's CONFIG_MODULE_COMPRESS_*
+# (BR2_PACKAGE_HOST_KMOD_GZ / _XZ / _ZSTD). When those disagree, depmod cannot
+# read a single .ko and fails SILENTLY, leaving empty tables — udev then
+# resolves no aliases and autoloads nothing. Most Pi 4 drivers are built in, but
+# panel-waveshare-dsi deliberately stays =m and would never load.
+for moddir in "$T"/lib/modules/*/; do
+    [ -d "$moddir/kernel" ] || continue   # fully built-in kernel: nothing to check
+    if [ ! -s "$moddir/modules.dep" ]; then
+        echo "POST-BUILD ERROR: ${moddir}modules.dep is empty although modules are installed." >&2
+        echo "  host depmod could not read them — BR2_PACKAGE_HOST_KMOD_GZ/_XZ/_ZSTD" >&2
+        echo "  must match the kernel's CONFIG_MODULE_COMPRESS_*." >&2
+        exit 1
+    fi
+    if ! grep -q "^alias " "$moddir/modules.alias" 2>/dev/null; then
+        echo "POST-BUILD ERROR: ${moddir}modules.alias has no alias entries —" >&2
+        echo "  udev cannot autoload any driver (same cause as an empty modules.dep)." >&2
+        exit 1
+    fi
+    echo "POST-BUILD: module tables OK ($(wc -l < "$moddir/modules.dep") deps, $(grep -c "^alias " "$moddir/modules.alias") aliases)"
+done
+
+# ------------------------------------------------------------------------------
 # Release Hardening
 # ------------------------------------------------------------------------------
 # The shared rootfs overlay always ships sshd config for dev images; release

@@ -84,6 +84,34 @@ rm -f "$T/etc/systemd/system/multi-user.target.wants/wpa_supplicant.service" 2>/
 #   ln -sf /dev/null "${TARGET_DIR}/etc/systemd/system/instrument-cluster.service"
 # fi
 
+# ------------------------------------------------------------------------------
+# Build integrity (all variants — not release-specific)
+# ------------------------------------------------------------------------------
+# Kernel modules must actually be loadable. Buildroot's LINUX_RUN_DEPMOD
+# target-finalize hook has already run by the time post-build scripts execute,
+# so the tables below are final. depmod runs on the HOST and needs a
+# decompressor matching the kernel's CONFIG_MODULE_COMPRESS_*
+# (BR2_PACKAGE_HOST_KMOD_GZ / _XZ / _ZSTD). When those disagree, depmod cannot
+# read a single .ko and fails SILENTLY, leaving empty tables — udev then
+# resolves no aliases and autoloads nothing. On the Pi 5 that is fatal (RP1
+# I/O, the DSI panel and touch are all modules here) and presents as a reboot
+# loop with no display.
+for moddir in "$T"/lib/modules/*/; do
+    [ -d "$moddir/kernel" ] || continue   # fully built-in kernel: nothing to check
+    if [ ! -s "$moddir/modules.dep" ]; then
+        echo "POST-BUILD ERROR: ${moddir}modules.dep is empty although modules are installed." >&2
+        echo "  host depmod could not read them — BR2_PACKAGE_HOST_KMOD_GZ/_XZ/_ZSTD" >&2
+        echo "  must match the kernel's CONFIG_MODULE_COMPRESS_*." >&2
+        exit 1
+    fi
+    if ! grep -q "^alias " "$moddir/modules.alias" 2>/dev/null; then
+        echo "POST-BUILD ERROR: ${moddir}modules.alias has no alias entries —" >&2
+        echo "  udev cannot autoload any driver (same cause as an empty modules.dep)." >&2
+        exit 1
+    fi
+    echo "POST-BUILD: module tables OK ($(wc -l < "$moddir/modules.dep") deps, $(grep -c "^alias " "$moddir/modules.alias") aliases)"
+done
+
 # The shared rootfs overlay always ships sshd config for dev images; release
 # builds (configs/release.fragment) drop OpenSSH itself — remove the now-inert
 # config so shipped images contain no SSH artifacts at all. CI's
