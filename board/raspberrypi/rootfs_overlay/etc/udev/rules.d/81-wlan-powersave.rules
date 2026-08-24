@@ -1,0 +1,26 @@
+# Turn Wi-Fi power save off as soon as a wlan interface appears.
+#
+# The product data path is UDP over Wi-Fi (game -> telemetry proxy -> app at
+# 60 Hz) and the brcmfmac default is power save ON, which parks the radio
+# between beacons and silently drops inbound datagrams. UDP has no retry, so
+# those frames are simply lost.
+#
+# Measured on a Pi 4 at idle, 2026-08-24, with a 1 Hz monitoring stream:
+#
+#   power_save on   28.6% of samples never arrived, in bursts up to 91 s,
+#                   with recoveries snapping to a 2-minute grid
+#   power_save off   6.3% loss, periodic pattern gone
+#
+# The app was unaffected either way (steady 62 fps, flat RSS), and transport
+# latency did not change - this is purely the link dropping packets while the
+# radio naps. It bites hardest after an idle spell, i.e. at the start of a
+# session.
+#
+# Done as a udev rule rather than a systemd unit so it applies whenever the
+# interface is created, including after a driver reload, with no boot-ordering
+# dependency (see the boot-ordering hazard note in CLAUDE.md). %k keeps it
+# correct if the interface is ever not wlan0.
+#
+# iw ships in the image (BR2_PACKAGE_IW=y). Verify on a device with:
+#     iw wlan0 get power_save
+ACTION=="add", SUBSYSTEM=="net", KERNEL=="wlan*", RUN+="/usr/sbin/iw dev %k set power_save off"
