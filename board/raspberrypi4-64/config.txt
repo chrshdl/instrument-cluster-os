@@ -18,6 +18,7 @@ dtparam=spi=on
 # module tree is absent from the built rootfs.
 
 dtoverlay=vc4-kms-v3d
+
 # -------------------
 # Panel selection
 # -------------------
@@ -27,5 +28,5 @@ dtoverlay=vc4-kms-v3d
 # Waveshare 5inch DSI LCD, 800x480 (SKU WAV-18396)
 dtoverlay=vc4-kms-dsi-7inch
 
-# Waveshare 7inch DSI LCD (C), 1024x600:
+# Waveshare 7inch DSI LCD (C), 1024x600
 #dtoverlay=vc4-kms-dsi-waveshare-panel,7_0_inchC,i2c1
