@@ -1,7 +1,6 @@
 # Compress kernel modules with gzip (zlib licence) instead of the upstream
 # bcm2712_defconfig default of xz, which drags GPL-3.0+ xz-utils onto the
-# target via BR2_PACKAGE_XZ. Mirrors the equivalent switch in
-# board/raspberrypi4-64/linux.config. Only the compressor changes, not whether
+# target via BR2_PACKAGE_XZ. Applied to both boards from this one file. Only the compressor changes, not whether
 # modules are compressed at all — gzip still shrinks .ko files substantially.
 #
 # This MUST stay in step with BR2_PACKAGE_HOST_KMOD_GZ=y in
