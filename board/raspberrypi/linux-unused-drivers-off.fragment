@@ -3,8 +3,9 @@
 # no NFC/raw-flash/IR-remote, and DRM/framebuffer/touchscreen controller
 # drivers for panels and touch chips other than the three DSI panels and
 # two touch chips (Goodix GT911, EDT-FT5x06) this product actually ships.
-# Mirrors the equivalent disables in board/raspberrypi4-64/linux.config —
-# see that file's history for the per-block audit this was derived from.
+# Applied to both boards from this one file; see the history of
+# board/raspberrypi4-64/linux.config for the per-block audit this was
+# derived from.
 # CONFIG_CAN is not set
 # CONFIG_CAN_J1939 is not set
 # CONFIG_CAN_ISOTP is not set
