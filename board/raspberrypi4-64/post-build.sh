@@ -142,6 +142,47 @@ for moddir in "$T"/lib/modules/*/; do
     echo "POST-BUILD: module tables OK ($(wc -l < "$moddir/modules.dep") deps, $(grep -c "^alias " "$moddir/modules.alias") aliases)"
 done
 
+# The application itself must be in the image. Buildroot will happily produce
+# a complete, bootable rootfs with a package missing: a stale
+# build/python-instrument-cluster-* stamp directory (an OVERRIDE_SRCDIR build
+# left behind, then a plain rebuild) makes it skip the package entirely, and
+# the build still succeeds. That shipped a 1.7 GB image which booted to
+# nothing while every other check here passed. "The build succeeded" is not
+# evidence that the app is in it.
+app_root=""
+for d in "$T"/usr/lib/python3.*/site-packages/instrument_cluster; do
+    [ -d "$d" ] && app_root="$d"
+done
+if [ -z "$app_root" ]; then
+    echo "POST-BUILD ERROR: the instrument_cluster package is not in the rootfs." >&2
+    echo "  The build completed without it. A stale" >&2
+    echo "  output*/build/python-instrument-cluster-* directory will do this —" >&2
+    echo "  remove it and rebuild." >&2
+    exit 1
+fi
+if [ ! -f "$T/usr/bin/instrument-cluster" ]; then
+    echo "POST-BUILD ERROR: /usr/bin/instrument-cluster is missing although the" >&2
+    echo "  package is installed — the console script did not get written." >&2
+    exit 1
+fi
+echo "POST-BUILD: app present ($(basename "$(dirname "$(dirname "$app_root")")")/site-packages)"
+
+# Whatever the config promises must actually be installed. This branch is a
+# no-op in the community tree, which defines no Pro package; it is here so the
+# Pro tree inherits the guard when it merges upstream.
+if grep -q "^BR2_PACKAGE_PYTHON_INSTRUMENT_CLUSTER_PRO=y" "$BR2_CONFIG"; then
+    pro_root=""
+    for d in "$T"/usr/lib/python3.*/site-packages/instrument_cluster_pro; do
+        [ -d "$d" ] && pro_root="$d"
+    done
+    if [ -z "$pro_root" ]; then
+        echo "POST-BUILD ERROR: Pro is enabled in the config but the" >&2
+        echo "  instrument_cluster_pro package is not in the rootfs." >&2
+        exit 1
+    fi
+    echo "POST-BUILD: Pro extension present"
+fi
+
 # ------------------------------------------------------------------------------
 # Release Hardening
 # ------------------------------------------------------------------------------
