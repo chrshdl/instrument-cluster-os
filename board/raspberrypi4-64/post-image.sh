@@ -30,13 +30,30 @@ if ! grep -q "^BR2_PACKAGE_OPENSSH=y" "${BR2_CONFIG}"; then
     # ...and the UART is not brought up by the firmware at all.
     sed -i 's/^enable_uart=1/enable_uart=0/' "${BINARIES_DIR}/rpi-firmware/config.txt"
 
-    # Non-interruptible U-Boot: bootdelay=-2 autoboots without checking for
-    # abort, and stdin drops "serial" (usbkbd is inert — USB is disabled in
-    # the U-Boot build). Regenerate the redundant env image from a hardened
-    # copy of uboot-env.txt; size/redundancy must match the defconfig's
+    # Non-interruptible U-Boot, two independent ways: bootdelay=-2 autoboots
+    # without ever calling abortboot, and stdin is pointed at "nulldev", whose
+    # tstc() always returns 0 (common/stdio.c, CONFIG_SYS_DEVICE_NULLDEV=y on
+    # both boards) — so even if bootdelay were somehow reset, no keypress can
+    # be seen.
+    #
+    # It MUST name a device that exists. This previously said "usbkbd" on the
+    # theory that USB is compiled out of the U-Boot build so it would be
+    # inert; the opposite is true. console_init_r() ends with
+    #
+    #     if (inputdev == NULL)
+    #             inputdev = console_search_dev(DEV_FLAGS_INPUT, "serial");
+    #
+    # so naming a device that does not exist falls straight back to serial,
+    # and the release image had a live serial console with bootdelay as its
+    # only guard. assert-release-image.sh now asserts stdin=nulldev
+    # positively, because "does not contain stdin=serial" was satisfied by the
+    # very value that produced serial input.
+    #
+    # Regenerate the redundant env image from a hardened copy of
+    # uboot-env.txt; size/redundancy must match the defconfig's
     # BR2_PACKAGE_HOST_UBOOT_TOOLS_ENVIMAGE_SIZE/_REDUNDANT (0x4000, -r).
     sed -e 's/^bootdelay=.*/bootdelay=-2/' \
-        -e 's/^stdin=.*/stdin=usbkbd/' \
+        -e 's/^stdin=.*/stdin=nulldev/' \
         "${BOARD_DIR}/uboot-env.txt" > "${BUILD_DIR}/uboot-env-release.txt"
     "${HOST_DIR}/bin/mkenvimage" -r -s 0x4000 \
         -o "${BINARIES_DIR}/uboot-env.bin" "${BUILD_DIR}/uboot-env-release.txt"

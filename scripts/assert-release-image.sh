@@ -8,7 +8,7 @@
 # Usage: scripts/assert-release-image.sh <path/to/.config> <path/to/rootfs.ext4> [<images-dir>]
 # With <images-dir> (output/images) it additionally asserts the hardened boot
 # artifacts: no serial console in cmdline.txt, UART off in config.txt, and a
-# non-interruptible U-Boot env (bootdelay=-2, no serial stdin).
+# non-interruptible U-Boot env (bootdelay=-2, stdin=nulldev).
 # Requires: debugfs (e2fsprogs). No root needed.
 set -eu
 
@@ -121,10 +121,18 @@ if [ -n "$IMAGES_DIR" ]; then
     if grep -q "^enable_uart=1" "$CONFTXT"; then
         fail "enable_uart=1 still present in config.txt"
     fi
-    # U-Boot must autoboot without an abort check and without serial stdin.
-    # The env image is NUL-separated text, so grep -a works on it.
+    # U-Boot must autoboot without an abort check, and stdin must be a device
+    # that exists and never reports a keypress. The env image is NUL-separated
+    # text, so grep -a works on it.
     grep -a -q -e "bootdelay=-2" "$UBOOTENV" \
         || fail "uboot-env.bin does not contain bootdelay=-2"
+    # Assert nulldev POSITIVELY. A negative "no stdin=serial" check is not
+    # enough: console_init_r() falls back to serial whenever the named device
+    # is not registered, so any bogus name (this used to say usbkbd, with USB
+    # compiled out of the U-Boot build) passes a negative check while giving
+    # the image a live serial console.
+    grep -a -q -e "stdin=nulldev" "$UBOOTENV" \
+        || fail "uboot-env.bin does not set stdin=nulldev — U-Boot falls back to serial for any unregistered device"
     if grep -a -q -e "stdin=serial" "$UBOOTENV"; then
         fail "uboot-env.bin still lists serial as stdin"
     fi

@@ -1,6 +1,6 @@
 bootdelay=1
 baudrate=115200
-stdin=serial,usbkbd
+stdin=serial
 stdout=serial
 stderr=serial
 BOOT_ORDER=A B

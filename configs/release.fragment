@@ -8,7 +8,9 @@
 # and post-image scripts detect this variant (OpenSSH absent from BR2_CONFIG)
 # and additionally mask the getty templates, drop the serial console from
 # cmdline.txt, set enable_uart=0, and regenerate the U-Boot env with
-# bootdelay=-2 + stdin without serial (non-interruptible autoboot).
+# bootdelay=-2 + stdin=nulldev (non-interruptible autoboot; nulldev is a real
+# registered device whose tstc() always returns 0 — naming a device that does
+# not exist makes U-Boot fall back to serial).
 # assert-release-image.sh checks all of it when given the images dir.
 # Per-device EEPROM hardening (BOOT_UART=0) is a provisioning step, not an
 # image property — see docs/EEPROM_PROVISIONING.md.
