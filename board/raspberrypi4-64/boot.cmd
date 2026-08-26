@@ -37,20 +37,40 @@ done
 
 if test -n "${raucslot}"; then
   setenv bootargs "root=/dev/mmcblk0p${raucpart} rauc.slot=${raucslot} rootwait console=tty3 console=ttyAMA0,115200 quiet loglevel=3 video=HDMI-A-1:d video=HDMI-A-2:d logo.nologo vt.global_cursor_default=0 systemd.show_status=0 cma=256M"
-  
-  # Silence U-Boot's internal echoes by using 'setenv silent 1'
-  # (Requires U-Boot to be compiled with CONFIG_SILENT_CONSOLE=y)
-  setenv silent 1
-  setenv bootdelay 0
+
+  # The firmware-patched DTB address arrives in ${fdt_addr} (rpi.c
+  # set_fdt_addr, from the pointer the firmware passes in x0). Copy it to a
+  # variable of our own and DELETE fdt_addr before saveenv:
+  # set_fdt_addr() starts with `if (env_get("fdt_addr")) return;`, so a
+  # persisted value freezes the address at whatever the FIRST boot saw and is
+  # never re-derived. The firmware is free to move the DTB - it places it at
+  # 512-byte granularity, so editing config.txt (switching DSI panels is a
+  # documented user action) can shift it - and a frozen address then makes
+  # booti fail with "Did not find a cmdline Flattened Device Tree" on every
+  # boot, for good. Nothing else in the env may be written here either:
+  # saveenv persists the WHOLE environment, so `setenv bootdelay 0` used to
+  # overwrite the release variant's bootdelay=-2 on the very first boot,
+  # silently undoing the non-interruptible-autoboot hardening that
+  # post-image.sh sets and assert-release-image.sh checks at build time.
+  setenv fdtsrc "${fdt_addr}"
+  setenv fdt_addr
 
   # Persist the decremented attempt counter before booting.
   saveenv
 
-  # Kernel from the selected slot; the DTB stays the firmware-patched
-  # one (${fdt_addr}) - the Pi firmware applies config.txt overlays and
-  # memory fixups that a raw DTB loaded from disk would lack.
+  # No DTB from the firmware is not slot-specific, but burn the attempt
+  # anyway: the counters are what get this device out of any pre-Linux
+  # failure, and never rotating would just hide it.
+  if test -z "${fdtsrc}"; then
+    echo "FATAL: firmware passed no device tree (fdt_addr unset)"
+    reset
+  fi
+
+  # Kernel from the selected slot; the DTB stays the firmware-patched one -
+  # the Pi firmware applies config.txt overlays and memory fixups that a raw
+  # DTB loaded from disk would lack.
   if ext4load mmc 0:${raucpart} ${kernel_addr_r} /boot/Image; then
-    booti ${kernel_addr_r} - ${fdt_addr}
+    booti ${kernel_addr_r} - ${fdtsrc}
   fi
   # Load or boot failed (corrupt slot): the attempt is already burned,
   # so retrying eventually rotates to the other slot.
