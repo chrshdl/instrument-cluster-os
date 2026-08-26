@@ -229,21 +229,40 @@ PRs opened with the default `GITHUB_TOKEN` don't trigger the CI workflow (GitHub
 
 ### Marketing site rebuild on release
 
-`ci.yml`'s `notify-site` job runs `gh workflow run publish.yml -R
-revokyte/revokyte-site` on `v*` tag builds. That site's `/licenses` and
+`ci.yml`'s `notify-site` job dispatches `revokyte/revokyte-site`'s
+`publish.yml` on `v*` tag builds, using the REST form rather than `gh workflow
+run`: `gh api -X POST
+repos/revokyte/revokyte-site/actions/workflows/publish.yml/dispatches -f
+ref=main`. Same effect, but the workflow **path** is what has to match — the
+target must stay at `.github/workflows/publish.yml` and keep its
+`workflow_dispatch` trigger, or the dispatch 404s. That site's `/licenses` and
 `/de/lizenzen/` resolve their `legal-info-*` download links at build time from
 this repo's latest release and name it as the current one, so without a
 rebuild they assert a stale tag. `needs: build` holds the dispatch until every
 board has attached its archive — firing on the release event instead would
 race a half-populated release.
 
-It previously targeted `chrshdl.github.io/deploy.yml`. That repo no longer
-exists (the site is built from `revokyte/revokyte-site` and published to
-`revokyte/revokyte-www`), so the job had been pointing at nothing since the
-move; it last ran green on v0.2.9. The site also had a daily cron as a
-backstop, which is gone — this job is now the only thing keeping those pages
-current, so a failure here means stale licence links until someone runs
-`publish.yml` by hand.
+It previously targeted `chrshdl.github.io/deploy.yml`, before the site moved to
+`revokyte/revokyte-site` (built there, published to the public
+`revokyte/revokyte-www`). The wiring is correct as of v0.2.36: the secret is
+present, the target workflow is active at the path above, and `notify-site`
+itself last ran **green on v0.2.35** — its dispatch reached `revokyte-site` at
+21:53:35, seconds after the last board finished.
+
+**A green `notify-site` does not mean the site rebuilt.** The dispatch endpoint
+returns 204 = *accepted*, never *executed*, and the job ends there — so nothing
+in this repo's CI can tell you what happened on the other side. It has to be
+checked where it runs: `gh run list -R revokyte/revokyte-site`.
+
+That distinction matters because the far side is where it actually breaks. This
+repo is public, so its Actions minutes are free and its builds always run;
+`revokyte-site` is **private**, so its minutes are billable and every run there
+dies in 3-6 s once the account spending limit is hit — dispatched runs and
+plain pushes alike (seen across 2026-08-24/25, limit resetting on the 1st). The
+symptom is stale licence links with a fully green release build. The daily cron
+that used to paper over this is gone, so when the limit is the cause, the fix
+is to raise it (or wait for the reset) and then run `publish.yml` by hand;
+re-tagging this repo would not help.
 
 Needs `SITE_DEPLOY_PAT`: fine-grained PAT, `revokyte-site` only, **Actions:
 read and write** — enough to start a workflow there, and deliberately not
