@@ -104,6 +104,22 @@ for unit in serial-getty@.service console-getty.service getty@.service; do
         || fail "etc/systemd/system/$unit is not a mask (symlink to /dev/null)"
 done
 
+# The dashboard must not be a hard dependency of the splash screen. When a
+# Requires= dependency fails, systemd DISCARDS the dependent unit's start job
+# without a word: the app is never started, so it never fails, so
+# StartLimitAction=reboot cannot fire and the device sits on the splash
+# forever. It also never writes /boot/instrument-cluster.log, because main.py
+# is never imported — so the one support channel a release image has goes
+# silent exactly when it is needed. A Waveshare 5" shipped that way; the fault
+# took a day to find because nothing on the device could report it.
+sl_unit="$(debugfs -R "cat usr/lib/systemd/system/instrument-cluster.service" \
+    "$ROOTFS" 2>/dev/null)"
+echo "$sl_unit" | grep -q "splashscreen" \
+    || fail "instrument-cluster.service does not reference splashscreen.service at all"
+if echo "$sl_unit" | grep -qE "^Requires=.*splashscreen"; then
+    fail "instrument-cluster.service Requires= splashscreen.service — a failed splash would discard the dashboard's start job (use Wants=)"
+fi
+
 # Boot-artifact assertions (only when the images dir is provided).
 if [ -n "$IMAGES_DIR" ]; then
     CMDLINE="$IMAGES_DIR/rpi-firmware/cmdline.txt"
