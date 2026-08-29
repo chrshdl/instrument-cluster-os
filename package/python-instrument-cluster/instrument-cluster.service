@@ -6,9 +6,24 @@ Description=instrument-cluster
 # power cut. The app waits for /data itself right before reading its config
 # (main._wait_for_config_volume), so nothing here races the mount.
 DefaultDependencies=no
-Requires=splashscreen.service
+# Wants=, deliberately NOT Requires=. A decorative splash must never gate the
+# product's only function: when a Requires= dependency fails, systemd DISCARDS
+# this unit's start job without printing anything about it. The app is then
+# never executed, so it never fails either, so StartLimitAction=reboot below
+# cannot fire and the device sits there indefinitely.
+#
+# A Waveshare 5" in the field did exactly that. splashscreen.service failed at
+# ~2.2 s (see its own comments), fbv had already painted the logo, and the
+# panel kept those pixels forever: no dashboard, no restart, no reboot — and
+# no debug log either, because main.py is never imported and so the /boot log
+# file is never even created. The only visible trace was systemd's downstream
+# "[DEPEND] Dependency failed for Instrument Cluster health monitor for RAUC",
+# because that unit Requires= this one.
+Wants=splashscreen.service
 # splashscreen is pulled up by udev the moment /dev/fb0 exists, so ordering
-# after it also guarantees the display stack is probed before SDL starts.
+# after it also guarantees the display stack is probed before SDL starts. The
+# ordering is kept; splashscreen.service now carries a TimeoutStartSec so a
+# panel that never settles cannot hold the dashboard back indefinitely either.
 After=splashscreen.service systemd-journald.socket
 # DefaultDependencies=no also drops the implicit shutdown ordering — put it
 # back so the app still stops cleanly on reboot/poweroff.

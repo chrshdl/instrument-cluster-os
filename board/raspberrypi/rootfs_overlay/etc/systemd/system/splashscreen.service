@@ -10,9 +10,22 @@ After=systemd-udevd.service
 [Service]
 Type=oneshot
 # The unit is also pulled in early via multi-user.target.wants and the app's
-# Requires=, which can race the fb0 udev event — poll for up to 8s before
+# Wants=, which can race the fb0 udev event — poll for up to 8s before
 # drawing. "$$" is systemd escaping for a literal "$" handed to the shell.
-ExecStart=/bin/sh -c "n=0; while [ ! -e /sys/class/graphics/fb0/blank ] && [ $$n -lt 80 ]; do sleep 0.1; n=$$((n+1)); done; echo 0 > /sys/class/graphics/fb0/blank && exec /usr/bin/fbv -i -f /etc/splash.png"
+#
+# The unblank is ";" and not "&&": it is cosmetic, and gating the splash on it
+# is what took a device down. On a Waveshare 5" /sys/class/graphics/fb0/blank
+# exists by ~2.2 s but rejects the write while the DSI panel is still settling
+# (the same probe race goodix-rebind.service works around). The "&&" then
+# short-circuited, fbv never ran, the unit exited non-zero — and because
+# instrument-cluster.service used to Requires= this one, systemd discarded the
+# dashboard's start job outright. Draw the splash even if the unblank fails.
+#
+# ExecStart=- and TimeoutStartSec make that class of failure structurally
+# harmless: this unit can no longer fail, and can no longer stall the boot on
+# the 90 s default while something downstream waits on its ordering.
+ExecStart=-/bin/sh -c "n=0; while [ ! -e /sys/class/graphics/fb0/blank ] && [ $$n -lt 80 ]; do sleep 0.1; n=$$((n+1)); done; echo 0 > /sys/class/graphics/fb0/blank; exec /usr/bin/fbv -i -f /etc/splash.png"
+TimeoutStartSec=15
 StandardInput=null
 StandardOutput=null
 RemainAfterExit=yes
