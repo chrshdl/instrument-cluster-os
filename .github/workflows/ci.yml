@@ -28,7 +28,7 @@ jobs:
         board: [raspberrypi4-64, raspberrypi5]
     steps:
       - name: Free disk space
-        uses: endersonmenezes/free-disk-space@7901478139cff6e9d44df5972fd8ab8fcade4db1 # v3.2.2
+        uses: endersonmenezes/free-disk-space@2a22f8c59cae9cddae7194b33e6b92d023b2b4b8 # v4.0.0
         with:
           remove_android: true
           remove_tool_cache: true
@@ -156,7 +156,7 @@ jobs:
 
       - name: Upload Factory Image to Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: |
             output/images/${{ env.IMG }}
@@ -164,7 +164,7 @@ jobs:
 
       - name: Upload Legal Info to Release
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           files: output/images/legal-info-${{ github.ref_name }}-${{ matrix.board }}.tar.gz
 
